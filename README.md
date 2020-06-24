@@ -1,6 +1,6 @@
 # graphqlcrud-java
 
-GraphQLCRUD Java automates schema generation and provides CRUD capabilities. 
+GraphQLCRUD Java automates schema generation and integrates with GraphQL CRUD capabilities offered by https://graphqlcrud.org spec. 
 
 ## Running the application 
 
