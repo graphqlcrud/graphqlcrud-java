@@ -44,6 +44,21 @@
       <artifactId>rest-assured</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.teiid</groupId>
+      <artifactId>teiid</artifactId>
+      <version>14.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.teiid</groupId>
+      <artifactId>teiid-common-core</artifactId>
+      <version>14.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.teiid</groupId>
+      <artifactId>teiid-api</artifactId>
+      <version>14.0.0</version>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
