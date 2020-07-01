@@ -44,6 +44,12 @@
       <artifactId>rest-assured</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.teiid</groupId>
+      <artifactId>teiid</artifactId>
+      <version>14.0.0</version>
+      <classifier>jdbc</classifier>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
