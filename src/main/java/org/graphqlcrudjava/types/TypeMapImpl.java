@@ -9,7 +9,6 @@ public class TypeMapImpl implements TypeMap {
         String typeString;
         switch (dataType) {
             case Types.TINYINT:
-            case Types.BIGINT:
             case Types.INTEGER:
             case Types.SMALLINT:
                 typeString = "Int";

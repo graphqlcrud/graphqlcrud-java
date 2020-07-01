@@ -21,14 +21,14 @@ public class DatabaseAnalyzer implements AutoCloseable {
 
     private final DatabaseMetaData databaseMetaData;
 
-    private final String catlog;
+    private final String catalog;
     private final String schema;
     private final TypeMapImpl typeMap = new TypeMapImpl();
 
     public DatabaseAnalyzer(Connection connection) throws SQLException {
         this.databaseMetaData = connection.getMetaData();
         this.schema = connection.getSchema();
-        this.catlog = connection.getCatalog();
+        this.catalog = connection.getCatalog();
     }
 
     @Override
@@ -47,7 +47,7 @@ public class DatabaseAnalyzer implements AutoCloseable {
     public List<Entity> initializeEntities() throws SQLException {
         List<Entity> entities = new ArrayList<>();
             try (ResultSet results = this.databaseMetaData
-                    .getTables(this.catlog, this.schema, null, new String[]{"TABLE", "VIEW"})) {
+                    .getTables(this.catalog, this.schema, null, new String[]{"TABLE", "VIEW"})) {
                 while (results.next()) {
                     String tableName = results.getString("TABLE_NAME");
                     Entity entity = initializeEntity(tableName);
@@ -68,7 +68,7 @@ public class DatabaseAnalyzer implements AutoCloseable {
         Entity entity = new Entity(table);
         List<String> primaryKeys = new ArrayList<>();
 
-        try (ResultSet results = this.databaseMetaData.getPrimaryKeys(catlog, schema, table)) {
+        try (ResultSet results = this.databaseMetaData.getPrimaryKeys(catalog, schema, table)) {
             LOGGER.debug("Loading primary keys for table: " + table);
             while (results.next()) {
                 String name = results.getString("COLUMN_NAME");
@@ -76,7 +76,7 @@ public class DatabaseAnalyzer implements AutoCloseable {
             }
         }
 
-        try (ResultSet results = this.databaseMetaData.getColumns(catlog, schema, table, "%")) {
+        try (ResultSet results = this.databaseMetaData.getColumns(catalog, schema, table, "%")) {
             LOGGER.debug("Loading columns for table: " + table);
             while (results.next()) {
                 Attribute attribute = initializeAttribute(results, primaryKeys);
@@ -100,7 +100,7 @@ public class DatabaseAnalyzer implements AutoCloseable {
 
     private void initializeRelations(Map<String, Entity> entityMap) throws SQLException {
         for (Entity e : entityMap.values()) {
-            try (ResultSet results = this.databaseMetaData.getImportedKeys(catlog, schema, e.getName())) {
+            try (ResultSet results = this.databaseMetaData.getImportedKeys(catalog, schema, e.getName())) {
                 LOGGER.debug("Loading imported keys for table: " + e.getName());
                 while (results.next()) {
                     String pktable = results.getString("PKTABLE_NAME");

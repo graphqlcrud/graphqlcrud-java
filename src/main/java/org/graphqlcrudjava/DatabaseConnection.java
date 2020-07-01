@@ -1,16 +1,21 @@
 package org.graphqlcrudjava;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.*;
 
 public class DatabaseConnection {
 
-        //Any Data Source Connection
+    private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseConnection.class);
+
+    //Any Data Source Connection
         public static Connection connect(String jdbcUrl, String driver, String username, String password) throws SQLException {
             try {
             Class.forName(driver).newInstance();
         } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
+                LOGGER.error("Unable to find suitable driver.", e);
+            }
 
         return DriverManager.getConnection(jdbcUrl, username, password);
         }
@@ -21,8 +26,8 @@ public class DatabaseConnection {
             Driver teiidDriver = new org.teiid.jdbc.TeiidDriver();
             DriverManager.registerDriver(teiidDriver);
         } catch (Exception e) {
-            e.printStackTrace();
-        }
+                LOGGER.error("Unable to find suitable driver.", e);
+            }
         return DriverManager.getConnection("jdbc:teiid:customer@mm://localhost:31000", "sa", "sa");
 
         }
