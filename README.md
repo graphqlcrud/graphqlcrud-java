@@ -6,7 +6,7 @@ GraphQLCRUD Java automates schema generation and integrates with GraphQL CRUD ca
 
 You can run your application in dev mode that enables live coding using:
 ```
-./mvnw quarkus:dev
+mvn clean install
 ```
 
 ## Packaging and running the application
