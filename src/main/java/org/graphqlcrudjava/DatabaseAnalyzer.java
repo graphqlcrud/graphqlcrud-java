@@ -86,7 +86,7 @@ public class DatabaseAnalyzer implements AutoCloseable {
     }
 
     public Attribute initializeAttribute(ResultSet results, List<String> primaryKeys) throws SQLException {
-        List<GraphQLArgument> graphQLArguments = Collections.emptyList();
+        List<GraphQLArgument> graphQLArguments = new ArrayList<>();
         String name = results.getString("COLUMN_NAME");
         int position = results.getInt("ORDINAL_POSITION");
         int dataType = results.getInt("DATA_TYPE");
@@ -98,7 +98,7 @@ public class DatabaseAnalyzer implements AutoCloseable {
     }
 
     private void initializeRelations(Map<String, Entity> entityMap) throws SQLException {
-        List<GraphQLArgument> graphQLArguments = Collections.emptyList();
+        List<GraphQLArgument> graphQLArguments = new ArrayList<>();
         for (Entity e : entityMap.values()) {
             try (ResultSet results = this.databaseMetaData.getImportedKeys(catalog, schema, e.getName())) {
                 LOGGER.debug("Loading imported keys for table: " + e.getName());

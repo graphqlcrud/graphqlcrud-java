@@ -34,7 +34,7 @@ public class Attribute extends GraphQLFieldDefinition implements Comparable<Attr
     //To be customized for adding comments
     @Override
     public String getDescription() {
-        return getDescription();
+        return super.getDescription();
     }
 
     public boolean isPrimaryKey() {
