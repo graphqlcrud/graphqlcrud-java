@@ -1,5 +1,7 @@
 package org.graphqlcrudjava.types;
 
+import graphql.schema.GraphQLOutputType;
+
 public interface TypeMap {
-    String getAsGraphQLTypeString(int dataType);
+    GraphQLOutputType getAsGraphQLTypeString(int dataType);
 }
