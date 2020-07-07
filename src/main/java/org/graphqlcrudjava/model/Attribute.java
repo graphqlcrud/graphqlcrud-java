@@ -1,33 +1,40 @@
 package org.graphqlcrudjava.model;
 
+import graphql.schema.DataFetcher;
+import graphql.schema.GraphQLArgument;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLOutputType;
+
+import java.util.List;
 import java.util.Objects;
 
-public class Attribute implements Comparable<Attribute> {
+public class Attribute extends GraphQLFieldDefinition implements Comparable<Attribute> {
+
     private final String name;
     private final int position;
-    private final String type;
     private final boolean isPrimaryKey;
     private final boolean isNullable;
     private Relation foreignKey;
+    private final GraphQLOutputType type;
 
-    public Attribute(String name, int position, String type, boolean isPrimaryKey, boolean isNullable) {
+    public Attribute(String name, String description, GraphQLOutputType type, DataFetcher<?> dataFetcher, List<GraphQLArgument> arguments, String deprecationReason, int position, boolean isPrimaryKey, boolean isNullable) {
+        super(name, description, type, dataFetcher, arguments, deprecationReason);
         this.name = name;
-        this.position = position;
         this.type = type;
+        this.position = position;
         this.isPrimaryKey = isPrimaryKey;
         this.isNullable = isNullable;
     }
 
-    public String getName() {
-        return name;
-    }
 
     public int getPosition() {
         return position;
     }
 
-    public String getType() {
-        return type;
+    //To be customized for adding comments
+    @Override
+    public String getDescription() {
+        return getDescription();
     }
 
     public boolean isPrimaryKey() {
@@ -56,7 +63,6 @@ public class Attribute implements Comparable<Attribute> {
         return "Attribute{" +
                 "name='" + name + '\'' +
                 ", position=" + position +
-                ", type=" + type +
                 ", isPrimaryKey=" + isPrimaryKey +
                 ", isNullable=" + isNullable +
                 ", foreignKey=" + foreignKey +

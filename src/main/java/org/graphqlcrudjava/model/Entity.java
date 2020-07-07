@@ -1,15 +1,18 @@
 package org.graphqlcrudjava.model;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Set;
-import java.util.TreeSet;
 
-public class Entity {
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLNamedOutputType;
+import graphql.schema.GraphQLObjectType;
+
+import java.util.*;
+
+public class Entity extends GraphQLObjectType {
     private final String name;
     private final Set<Attribute> attributes;
 
-    public Entity(String name) {
+    public Entity(String name, String description, List<GraphQLFieldDefinition> fieldDefinitions, List<GraphQLNamedOutputType> interfaces) {
+        super(name, description, fieldDefinitions, interfaces);
         this.name = name;
         this.attributes = new TreeSet<>();
     }
@@ -29,7 +32,7 @@ public class Entity {
     public int maxPosition() {
         return attributes.stream()
                 .max(Comparator.comparingInt(Attribute::getPosition))
-                .orElseThrow(() -> new IllegalStateException("null position found"))
+                .orElseThrow(() -> new IllegalStateException("Null position found"))
                 .getPosition()+1;
     }
 

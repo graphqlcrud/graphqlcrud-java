@@ -1,5 +1,6 @@
 package org.graphqlcrudjava;
 
+import graphql.schema.*;
 import org.graphqlcrudjava.model.Attribute;
 import org.graphqlcrudjava.model.Cardinality;
 import org.graphqlcrudjava.model.Entity;
@@ -9,11 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class DatabaseAnalyzer implements AutoCloseable {
 
@@ -46,17 +43,17 @@ public class DatabaseAnalyzer implements AutoCloseable {
 
     public List<Entity> initializeEntities() throws SQLException {
         List<Entity> entities = new ArrayList<>();
-            try (ResultSet results = this.databaseMetaData
-                    .getTables(this.catalog, this.schema, null, new String[]{"TABLE", "VIEW"})) {
-                while (results.next()) {
-                    String tableName = results.getString("TABLE_NAME");
-                    Entity entity = initializeEntity(tableName);
-                    if (entity != null) {
-                        LOGGER.debug(entity.toString());
-                        entities.add(entity);
-                    }
+        try (ResultSet results = this.databaseMetaData
+                .getTables(this.catalog, this.schema, null, new String[]{"TABLE", "VIEW"})) {
+            while (results.next()) {
+                String tableName = results.getString("TABLE_NAME");
+                Entity entity = initializeEntity(tableName);
+                if (entity != null) {
+                    LOGGER.debug(entity.toString());
+                    entities.add(entity);
                 }
             }
+        }
 
         Map<String, Entity> entityMap = initializeEntityMap(entities);
         initializeRelations(entityMap);
@@ -65,7 +62,9 @@ public class DatabaseAnalyzer implements AutoCloseable {
     }
 
     public Entity initializeEntity(String table) throws SQLException {
-        Entity entity = new Entity(table);
+        List<GraphQLNamedOutputType> graphQLNamedOutputTypes = Collections.emptyList();
+        List<GraphQLFieldDefinition> graphQLFieldDefinitions = Collections.emptyList();
+        Entity entity = new Entity(table,null,graphQLFieldDefinitions,graphQLNamedOutputTypes );
         List<String> primaryKeys = new ArrayList<>();
 
         try (ResultSet results = this.databaseMetaData.getPrimaryKeys(catalog, schema, table)) {
@@ -83,22 +82,23 @@ public class DatabaseAnalyzer implements AutoCloseable {
                 entity.addAttribute(attribute);
             }
         }
-
         return entity;
     }
 
     public Attribute initializeAttribute(ResultSet results, List<String> primaryKeys) throws SQLException {
+        List<GraphQLArgument> graphQLArguments = Collections.emptyList();
         String name = results.getString("COLUMN_NAME");
         int position = results.getInt("ORDINAL_POSITION");
         int dataType = results.getInt("DATA_TYPE");
-        String type =  typeMap.getAsGraphQLTypeString(dataType);
+        GraphQLOutputType type =  typeMap.getAsGraphQLTypeString(dataType);
         boolean isNullable = results.getInt("NULLABLE") == 1;
         boolean isPrimaryKey = primaryKeys.contains(name);
 
-        return new Attribute(name, position, type, isPrimaryKey, isNullable);
+        return new Attribute(name, null, type, null, graphQLArguments, null, position, isPrimaryKey, isNullable);
     }
 
     private void initializeRelations(Map<String, Entity> entityMap) throws SQLException {
+        List<GraphQLArgument> graphQLArguments = Collections.emptyList();
         for (Entity e : entityMap.values()) {
             try (ResultSet results = this.databaseMetaData.getImportedKeys(catalog, schema, e.getName())) {
                 LOGGER.debug("Loading imported keys for table: " + e.getName());
@@ -116,11 +116,15 @@ public class DatabaseAnalyzer implements AutoCloseable {
 
                     LOGGER.debug(String.format("Relation: %s.%s (1) <- %s.%s (M)", pktable, pkColumn, fkTable, fkColumn));
                     {
-                        String type = typeMap.getAsGraphQLTypeString(Types.ARRAY);
+                        GraphQLOutputType type = typeMap.getAsGraphQLTypeString(Types.ARRAY);
                         Attribute newAttribute = new Attribute(
                                 fkEntity.getName(),
-                                pkEntity.maxPosition(),
+                                null,
                                 type,
+                                null,
+                                graphQLArguments,
+                                null,
+                                pkEntity.maxPosition(),
                                 false,
                                 fkAttribute.isNullable());
                         Relation newRelation = new Relation(fkEntity, fkAttribute, Cardinality.MANY);
@@ -145,7 +149,7 @@ public class DatabaseAnalyzer implements AutoCloseable {
                 return a;
             }
         }
-        throw new IllegalStateException("Searching for unknown column: "+column);
+        throw new IllegalStateException("Searching for unknown column: " + column);
     }
 
     private Map<String, Entity> initializeEntityMap(List<Entity> entities) {
