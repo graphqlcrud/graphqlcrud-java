@@ -1,6 +1,8 @@
 package org.graphqlcrudjava;
 
+import graphql.Scalars;
 import graphql.schema.*;
+import graphql.schema.idl.SchemaPrinter;
 import org.graphqlcrudjava.model.Attribute;
 import org.graphqlcrudjava.model.Cardinality;
 import org.graphqlcrudjava.model.Entity;
@@ -57,6 +59,8 @@ public class DatabaseAnalyzer implements AutoCloseable {
 
         Map<String, Entity> entityMap = initializeEntityMap(entities);
         initializeRelations(entityMap);
+
+        buildNewSchema(entities);
 
         return entities;
     }
@@ -116,7 +120,7 @@ public class DatabaseAnalyzer implements AutoCloseable {
 
                     LOGGER.debug(String.format("Relation: %s.%s (1) <- %s.%s (M)", pktable, pkColumn, fkTable, fkColumn));
                     {
-                        GraphQLOutputType type = typeMap.getAsGraphQLTypeString(Types.ARRAY);
+                        GraphQLOutputType type = GraphQLList.list(GraphQLTypeReference.typeRef(fkEntity.getName()));
                         Attribute newAttribute = new Attribute(
                                 fkEntity.getName(),
                                 null,
@@ -159,4 +163,86 @@ public class DatabaseAnalyzer implements AutoCloseable {
         }
         return entityMap;
     }
+
+    private void buildNewSchema(List<Entity> entities) {
+        SchemaPrinter schemaPrinter = new SchemaPrinter();
+        List<GraphQLObjectType.Builder> builderList = new ArrayList<>();
+        Set<Attribute> attributes;
+        for(Entity entity : entities) {
+            GraphQLObjectType.Builder graphQLObjectType = new GraphQLObjectType.Builder();
+            attributes = entity.getAttributes();
+            for(Attribute attribute : attributes) {
+                graphQLObjectType
+                        .name(entity.getName())
+                        .field(f -> f.name(formatName(attribute))
+                            .type(formatAttribute(attribute)))
+                        .description(attribute.getDescription())
+                        .build();
+            }
+            builderList.add(graphQLObjectType);
+            }
+            String printer;
+            for(GraphQLObjectType.Builder o : builderList) {
+                printer = schemaPrinter.print(o.build());
+                System.out.println(printer);
+        }
+    }
+
+    private GraphQLOutputType formatAttribute(Attribute attribute) {
+        GraphQLOutputType type = attribute.getType();
+
+        if(!attribute.isNullable()) {
+            type = GraphQLNonNull.nonNull(attribute.getType());
+        }
+
+        if(attribute.isPrimaryKey()) {
+            return formatIDType(attribute);
+        }
+
+        if(attribute.getForeignKey() != null) {
+            return formatRelationType(attribute);
+        }
+
+        return type;
+    }
+
+    private GraphQLOutputType formatRelationType(Attribute attribute) {
+        Relation relation = attribute.getForeignKey();
+        GraphQLOutputType type = attribute.getType();
+
+        if(!attribute.isNullable()) {
+            type = GraphQLNonNull.nonNull(attribute.getType());
+        }
+
+        if(relation.getCardinality() == Cardinality.MANY) {
+            if(!relation.getForeignAttribute().isNullable()) {
+                type = GraphQLNonNull.nonNull(attribute.getType());
+            }
+        }
+        return type;
+    }
+
+    private GraphQLOutputType formatIDType(Attribute attribute) {
+        GraphQLOutputType type = Scalars.GraphQLID;
+
+        if(!attribute.isNullable()) {
+            type = GraphQLNonNull.nonNull(Scalars.GraphQLID);
+        }
+
+        return  type;
+    }
+
+    private String formatName(Attribute attribute) {
+        String name = attribute.getName();
+
+        if(attribute.getForeignKey() != null) {
+            Relation relation = attribute.getForeignKey();
+            String type = relation.getForeignEntity().getName();
+            if(relation.getCardinality() == Cardinality.MANY) {
+                name = type;
+            }
+        }
+        return name;
+    }
+
 }

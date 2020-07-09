@@ -25,6 +25,10 @@ public class Entity extends GraphQLObjectType {
         return name;
     }
 
+    public String getDescription() {
+        return super.getDescription();
+    }
+
     public Set<Attribute> getAttributes() {
         return Collections.unmodifiableSet(attributes);
     }
