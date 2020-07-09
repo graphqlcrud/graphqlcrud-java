@@ -4,6 +4,7 @@ import org.graphqlcrudjava.model.Entity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
@@ -21,7 +22,7 @@ public class GraphQLSchema {
         }
     }
 
-    private static DatabaseAnalyzer initializeDatabaseAnalyzer() {
+    private static DatabaseAnalyzer initializeDatabaseAnalyzer() throws IOException {
 
         DatabaseAnalyzer analyzer = null;
         try {
