@@ -1,10 +1,31 @@
 <?xml version="1.0"?>
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.graphqlcrudjava</groupId>
   <artifactId>graphqlcrud-java</artifactId>
   <version>1.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>graphqlcrud-java</name>
+  <url>https://graphqlcrud.org</url>
+  <description>Java based implementation engine for GraphQLCrud Specification</description>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>  
+  
+  <scm>
+    <connection>scm:git:git@github.com:graphqlcrud/graphqlcrud-java.git</connection>
+    <developerConnection>scm:git:git@github.com:graphqlcrud/graphqlcrud-java.git</developerConnection>
+    <url>https://graphqlcrud.org</url>
+    <tag>HEAD</tag>
+  </scm>  
+  
   <properties>
     <compiler-plugin.version>3.8.1</compiler-plugin.version>
     <maven.compiler.parameters>true</maven.compiler.parameters>
@@ -17,7 +38,10 @@
     <quarkus.platform.group-id>io.quarkus</quarkus.platform.group-id>
     <quarkus.platform.version>1.5.2.Final</quarkus.platform.version>
     <surefire-plugin.version>2.22.1</surefire-plugin.version>
+    <version.com.graphql-java>15.0</version.com.graphql-java>
+    <version.org.postgresql>42.2.14</version.org.postgresql> 
   </properties>
+  
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -27,35 +51,29 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-    </dependencies>
+      <dependency>
+        <groupId>com.graphql-java</groupId>
+        <artifactId>graphql-java</artifactId>
+        <version>${version.com.graphql-java}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.graphqlcrudjava</groupId>
+        <artifactId>engine</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>${version.org.postgresql}</version>
+      </dependency>
+    </dependencies>    
   </dependencyManagement>
-  <dependencies>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-resteasy</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit5</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.rest-assured</groupId>
-      <artifactId>rest-assured</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.teiid</groupId>
-      <artifactId>teiid</artifactId>
-      <version>14.0.0</version>
-      <classifier>jdbc</classifier>
-    </dependency>
-    <dependency>
-      <groupId>com.graphql-java</groupId>
-      <artifactId>graphql-java</artifactId>
-      <version>15.0</version>
-    </dependency>
-  </dependencies>
+  
+  <modules>
+    <module>engine</module>
+    <module>app</module>
+  </modules>
+  
   <build>
     <plugins>
       <plugin>
