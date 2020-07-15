@@ -32,27 +32,26 @@ import io.graphqlcrud.model.Attribute;
 import io.graphqlcrud.model.Cardinality;
 import io.graphqlcrud.model.Entity;
 import io.graphqlcrud.model.Relation;
+import io.graphqlcrud.model.Schema;
 
 public class DatabaseSchemaBuilder {
     private static final Logger LOGGER = LoggerFactory.getLogger(DatabaseSchemaBuilder.class);
     private final DatabaseMetaData databaseMetaData;
-    private final String catalog;
     private final String schema;
 
-    protected DatabaseSchemaBuilder(Connection connection) throws SQLException {
+    protected DatabaseSchemaBuilder(Connection connection, String schema) throws SQLException {
         this.databaseMetaData = connection.getMetaData();
-        this.schema = connection.getSchema();
-        this.catalog = connection.getCatalog();
+        this.schema = schema;
     }
 
-    public static List<Entity> getSchema(Connection connection) throws SQLException {
-        DatabaseSchemaBuilder analyzer = new DatabaseSchemaBuilder(connection);
+    public static Schema getSchema(Connection connection, String schema) throws SQLException {
+        DatabaseSchemaBuilder analyzer = new DatabaseSchemaBuilder(connection, schema);
         return analyzer.buildSchema();
     }
 
-    private List<Entity> buildSchema() throws SQLException {
+    protected Schema buildSchema() throws SQLException {
         Map<String, Entity> entityMap = new TreeMap<String, Entity>();
-        try (ResultSet results = this.databaseMetaData.getTables(this.catalog, this.schema, null,
+        try (ResultSet results = this.databaseMetaData.getTables(null, this.schema, null,
                 new String[] { "TABLE", "VIEW" })) {
             while (results.next()) {
                 String tableName = results.getString("TABLE_NAME");
@@ -65,14 +64,16 @@ public class DatabaseSchemaBuilder {
             }
         }
         buildRelations(entityMap);
-        return new ArrayList<Entity>(entityMap.values());
+        Schema s = new Schema(this.schema);
+        s.setEntities(new ArrayList<Entity>(entityMap.values()));
+        return s;
     }
 
     protected Entity buildEntity(String tableName) throws SQLException {
         Entity entity = new Entity(tableName);
         List<String> primaryKeys = new ArrayList<>();
 
-        try (ResultSet results = this.databaseMetaData.getPrimaryKeys(catalog, schema, tableName)) {
+        try (ResultSet results = this.databaseMetaData.getPrimaryKeys(null, this.schema, tableName)) {
             LOGGER.debug("Loading primary keys for table: " + tableName);
             while (results.next()) {
                 String name = results.getString("COLUMN_NAME");
@@ -81,7 +82,7 @@ public class DatabaseSchemaBuilder {
         }
         entity.setPrimaryKeys(primaryKeys);
 
-        try (ResultSet results = this.databaseMetaData.getColumns(catalog, schema, tableName, "%")) {
+        try (ResultSet results = this.databaseMetaData.getColumns(null, this.schema, tableName, "%")) {
             LOGGER.debug("Loading columns for table: " + tableName);
             while (results.next()) {
                 String name = results.getString("COLUMN_NAME");
@@ -112,7 +113,7 @@ public class DatabaseSchemaBuilder {
     private void buildRelations(Map<String, Entity> entityMap) throws SQLException {
         for (Entity entity : entityMap.values()) {
             HashMap<String, Relation> allRelations = new HashMap<String, Relation>();
-            try (ResultSet results = this.databaseMetaData.getImportedKeys(catalog, schema, entity.getName())) {
+            try (ResultSet results = this.databaseMetaData.getImportedKeys(null, this.schema, entity.getName())) {
                 LOGGER.debug("Loading imported keys for table: " + entity.getName());
                 while (results.next()) {
                     String pktable = results.getString("PKTABLE_NAME"); // 3

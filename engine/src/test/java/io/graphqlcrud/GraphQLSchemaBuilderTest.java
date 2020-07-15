@@ -19,15 +19,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.sql.Connection;
-import java.util.Collections;
-import java.util.List;
 
 import javax.inject.Inject;
 
 import org.junit.jupiter.api.Test;
 
+import graphql.schema.GraphQLSchema;
 import io.agroal.api.AgroalDataSource;
-import io.graphqlcrud.model.Entity;
 import io.graphqlcrud.model.Schema;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.h2.H2DatabaseTestResource;
@@ -35,7 +33,7 @@ import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTestResource(H2DatabaseTestResource.class)
 @QuarkusTest
-public class DatabaseSchemaTest {
+public class GraphQLSchemaBuilderTest {
     
     @Inject
     private AgroalDataSource datasource;
@@ -46,14 +44,10 @@ public class DatabaseSchemaTest {
             assertNotNull(connection);
             Schema s = DatabaseSchemaBuilder.getSchema(connection, "PUBLIC");
             assertNotNull(s);
-            List<Entity> entities = s.getEntities();
-            Collections.sort(entities);
-            assertEquals(4, entities.size());
             
-            // TODO: Write more assertions about what kind of columns and types
-            // and then relations this entity has
-            assertEquals("PRODUCT", entities.get(0).getName());
-            
+            // TODO: write more tests validating the schema generated
+            GraphQLSchema gqls = GraphQLSchemaBuilder.getSchema(s);
+            assertEquals("QueryType", gqls.getQueryType().getName());
         }
     }
 }

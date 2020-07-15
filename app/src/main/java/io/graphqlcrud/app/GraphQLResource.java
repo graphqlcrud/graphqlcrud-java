@@ -27,6 +27,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
@@ -46,6 +48,9 @@ public class GraphQLResource {
     
     private GraphQLSchema schema;
     
+    @ConfigProperty(name = "quarkus.datasource.schema")
+    private String dbSchemaName;
+    
     @POST
     public Map<String, Object> graphql(String query) throws Exception {
         GraphQLSchema schema = buildSchema();
@@ -60,7 +65,7 @@ public class GraphQLResource {
                 .variables(qp.getVariables());
         
         // pass the datasource around
-        executionInput.context(new Context(datasource));
+        executionInput.context(new Context(this.datasource));
         
         GraphQL graphQL = GraphQL
                 .newGraphQL(schema)
@@ -73,11 +78,11 @@ public class GraphQLResource {
     
     private GraphQLSchema buildSchema() throws SQLException {
         if (this.schema == null) {
-            try(Connection conn = datasource.getConnection()){
+            try(Connection conn = this.datasource.getConnection()){
                 GraphQLSchemaBuilder builder = new GraphQLSchemaBuilder();
-                this.schema = builder.getSchema(DatabaseSchemaBuilder.getSchema(conn)); 
+                this.schema = builder.getSchema(DatabaseSchemaBuilder.getSchema(conn, this.dbSchemaName)); 
             }
         }
-        return schema;
+        return this.schema;
     }    
 }

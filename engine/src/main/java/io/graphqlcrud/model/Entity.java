@@ -19,11 +19,9 @@ package io.graphqlcrud.model;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
-public class Entity {
+public class Entity implements Comparable<Entity>{
     private String name;
     private Map<String, Attribute> attributes = new TreeMap<>();
     private List<Relation> relations = new ArrayList<Relation>();
@@ -78,6 +76,14 @@ public class Entity {
     public String toString() {
         return "Entity [name=" + name + ", attributes=" + attributes + ", relations="
                 + relations + ", pks=" + pks + "]";
+    }
+
+    @Override
+    public int compareTo(Entity o) {
+        if (o == null) {
+            return -1;
+        }
+        return o.getName().compareTo(this.getName());
     }
 
 
