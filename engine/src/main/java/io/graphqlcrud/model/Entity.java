@@ -26,6 +26,7 @@ public class Entity implements Comparable<Entity>{
     private Map<String, Attribute> attributes = new TreeMap<>();
     private List<Relation> relations = new ArrayList<Relation>();
     private List<String> pks = new ArrayList<>();
+    private Schema parent;
     
     public Entity(String name) {
         this.name = name;
@@ -84,6 +85,14 @@ public class Entity implements Comparable<Entity>{
             return -1;
         }
         return o.getName().compareTo(this.getName());
+    }
+
+    public Schema getParent() {
+        return parent;
+    }
+
+    public void setParent(Schema parent) {
+        this.parent = parent;
     }
 
 

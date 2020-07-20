@@ -13,25 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.graphqlcrud.app;
+package io.graphqlcrud;
 
-import javax.sql.DataSource;
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetcherFactory;
+import graphql.schema.DataFetcherFactoryEnvironment;
 
-class Context {
-
-    private DataSource datasource;
-
-    public Context(DataSource datasource) {
-        this.datasource = datasource;
+// This must be thread safe
+public class RowFetcherFactory implements DataFetcherFactory<Object> {
+    private static RowFetcher fetcher = new RowFetcher();
+    @Override
+    public DataFetcher<Object> get(DataFetcherFactoryEnvironment environment) {
+        return fetcher;
     }
-
-    public DataSource getDatasource() {
-        return datasource;
-    }
-
-    public void setDatasource(DataSource datasource) {
-        this.datasource = datasource;
-    }
-
-
 }

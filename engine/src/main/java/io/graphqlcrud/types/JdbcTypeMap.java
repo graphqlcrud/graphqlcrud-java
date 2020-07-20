@@ -15,11 +15,11 @@
  */
 package io.graphqlcrud.types;
 
+import java.sql.Types;
+
 import graphql.Scalars;
 import graphql.scalars.ExtendedScalars;
 import graphql.schema.GraphQLOutputType;
-
-import java.sql.Types;
 
 public class JdbcTypeMap implements TypeMap {
 

@@ -14,23 +14,15 @@
  * limitations under the License.
  */
 package io.graphqlcrud;
-import java.util.Arrays;
-import java.util.List;
-
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetcherFactory;
 import graphql.schema.DataFetcherFactoryEnvironment;
-import graphql.schema.DataFetchingEnvironment;
 
-public class SQLBasedDataFetcherFactory implements DataFetcherFactory<List<String>> {
+// This must be thread safe
+public class SQLDataFetcherFactory implements DataFetcherFactory<ResultSetList> {
+    private static SQLDataFetcher fetcher = new SQLDataFetcher();
     @Override
-    public DataFetcher<List<String>> get(DataFetcherFactoryEnvironment environment) {
-        return new DataFetcher<List<String>>() {
-            @Override
-            public List<String> get(DataFetchingEnvironment environment) throws Exception {
-                // TODO: How to fix this for SQL
-                return Arrays.asList("blah");
-            }
-        };
+    public DataFetcher<ResultSetList> get(DataFetcherFactoryEnvironment environment) {
+        return fetcher;
     }
 }

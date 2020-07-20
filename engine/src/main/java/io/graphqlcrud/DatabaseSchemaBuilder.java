@@ -50,6 +50,7 @@ public class DatabaseSchemaBuilder {
     }
 
     protected Schema buildSchema() throws SQLException {
+        Schema s = new Schema(this.schema);
         Map<String, Entity> entityMap = new TreeMap<String, Entity>();
         try (ResultSet results = this.databaseMetaData.getTables(null, this.schema, null,
                 new String[] { "TABLE", "VIEW" })) {
@@ -59,12 +60,15 @@ public class DatabaseSchemaBuilder {
                     continue;
                 }
                 Entity entity = buildEntity(tableName);
+                entity.setParent(s);
                 entityMap.put(tableName, entity);
                 LOGGER.debug(entity.toString());
             }
         }
+        // build relations
         buildRelations(entityMap);
-        Schema s = new Schema(this.schema);
+        
+        // fill the schema
         s.setEntities(new ArrayList<Entity>(entityMap.values()));
         return s;
     }
