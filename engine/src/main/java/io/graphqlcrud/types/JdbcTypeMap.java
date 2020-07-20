@@ -16,6 +16,7 @@
 package io.graphqlcrud.types;
 
 import graphql.Scalars;
+import graphql.scalars.ExtendedScalars;
 import graphql.schema.GraphQLOutputType;
 
 import java.sql.Types;
@@ -43,22 +44,22 @@ public class JdbcTypeMap implements TypeMap {
             case Types.DECIMAL:
                 typeString = Scalars.GraphQLFloat;
                 break;
-//            case Types.DATE:
-//            case Types.TIMESTAMP:
-//            case Types.TIME:
-//                typeString = "Date";
-//                break;
+            case Types.DATE:
+            case Types.TIMESTAMP:
+            case Types.TIME:
+                typeString = ExtendedScalars.DateTime;
+                break;
             case Types.BIT:
                 typeString = Scalars.GraphQLBoolean;
                 break;
-//            case Types.OTHER:
-//                typeString = "Object";
-//                break;
-//            case Types.BINARY:
-//            case Types.VARBINARY:
-//            case Types.LONGVARBINARY:
-//                typeString = "Object";
-//                break;
+            case Types.OTHER:
+                typeString = ExtendedScalars.Object;
+                break;
+            case Types.BINARY:
+            case Types.VARBINARY:
+            case Types.LONGVARBINARY:
+                typeString = ExtendedScalars.Object;
+                break;
             default:
                 typeString = Scalars.GraphQLString;
                 break;

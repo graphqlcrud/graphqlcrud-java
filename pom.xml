@@ -38,6 +38,7 @@
     <quarkus.platform.group-id>io.quarkus</quarkus.platform.group-id>
     <quarkus.platform.version>1.5.2.Final</quarkus.platform.version>
     <surefire-plugin.version>2.22.1</surefire-plugin.version>
+    <failsafe-plugin.version>3.0.0-M3</failsafe-plugin.version>
     <version.com.graphql-java>15.0</version.com.graphql-java>
     <version.org.postgresql>42.2.14</version.org.postgresql> 
   </properties>
@@ -115,7 +116,7 @@
         <plugins>
           <plugin>
             <artifactId>maven-failsafe-plugin</artifactId>
-            <version>${surefire-plugin.version}</version>
+            <version>${failsafe-plugin.version}</version>
             <executions>
               <execution>
                 <goals>

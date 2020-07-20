@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 package io.graphqlcrud;
-
 import java.util.Arrays;
 import java.util.List;
 

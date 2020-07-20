@@ -61,7 +61,7 @@ public class GraphQLSchemaBuilder {
             typeBuilder.name(entity.getName());
             
             // Add fields in a Type
-            buildTypeFeilds(entity, schema).stream().forEach(fieldBuilder -> {
+            buildTypeFields(entity, schema).stream().forEach(fieldBuilder -> {
                 typeBuilder.field(fieldBuilder.build());    
             });
 
@@ -84,12 +84,12 @@ public class GraphQLSchemaBuilder {
         
         // add Code Registry
         GraphQLCodeRegistry.Builder codeBuilder = GraphQLCodeRegistry.newCodeRegistry();
-        
+
         SQLBasedDataFetcherFactory defaultDff = new SQLBasedDataFetcherFactory();
         codeBuilder.defaultDataFetcher(defaultDff);
         codeBuilder.dataFetcher(FieldCoordinates.coordinates("accounts", "ACCOUNT_ID"), defaultDff);
         codeBuilder.dataFetcher(FieldCoordinates.coordinates("accounts", "SSN"), defaultDff);
-        
+
         builder.codeRegistry(codeBuilder.build());
         
         return builder.build();
@@ -120,7 +120,7 @@ public class GraphQLSchemaBuilder {
         }
     }
 
-    protected List<GraphQLFieldDefinition.Builder> buildTypeFeilds(Entity entity, Schema schema) {
+    protected List<GraphQLFieldDefinition.Builder> buildTypeFields(Entity entity, Schema schema) {
         ArrayList<GraphQLFieldDefinition.Builder> fields = new ArrayList<GraphQLFieldDefinition.Builder>();
         
         // build fields for every attribute

@@ -15,13 +15,12 @@
  */
 package io.graphqlcrud;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import java.sql.Connection;
 
 import javax.inject.Inject;
 
+import graphql.schema.GraphQLObjectType;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import graphql.schema.GraphQLSchema;
@@ -34,20 +33,26 @@ import io.quarkus.test.junit.QuarkusTest;
 @QuarkusTestResource(H2DatabaseTestResource.class)
 @QuarkusTest
 public class GraphQLSchemaBuilderTest {
-    
+
     @Inject
     private AgroalDataSource datasource;
-    
+
     @Test
     public void testSchemaPrint() throws Exception {
         try (Connection connection = datasource.getConnection()){
-            assertNotNull(connection);
+            Assertions.assertNotNull(connection);
             Schema s = DatabaseSchemaBuilder.getSchema(connection, "PUBLIC");
-            assertNotNull(s);
-            
-            // TODO: write more tests validating the schema generated
-            GraphQLSchema gqls = GraphQLSchemaBuilder.getSchema(s);
-            assertEquals("QueryType", gqls.getQueryType().getName());
+            Assertions.assertNotNull(s);
+
+            GraphQLSchema schema = GraphQLSchemaBuilder.getSchema(s);
+            GraphQLObjectType objectType = schema.getQueryType();
+            Assertions.assertNotNull(objectType);
+            Assertions.assertEquals("QueryType", objectType.getName());
+            Assertions.assertEquals("account",objectType.getFieldDefinition("account").getName());
+            Assertions.assertEquals("ACCOUNT_ID",objectType.getFieldDefinition("account").getArguments().get(0).getName());
+//            Assertions.assertEquals(GraphQLList.list(  GraphQLTypeReference.typeRef("CUSTOMER")),objectType.getFieldDefinition("customers").getType());
+
+
         }
     }
 }
