@@ -40,9 +40,9 @@ public class Entity implements Comparable<Entity>{
         return this.name;
     }
     
-    // TODO: this needs to built for GraphQLCRUD 
+    // TODO: this needs to built for GraphQLCRUD
     public String getDescription() {
-        return "Enitity " + name;
+        return " @model ";
     }
 
     public List<Attribute> getAttributes() {

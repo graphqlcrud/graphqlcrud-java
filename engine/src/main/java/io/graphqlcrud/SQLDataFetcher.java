@@ -43,14 +43,15 @@ import graphql.schema.SelectedField;
 // This is very simple naively written class, will require more structure here
 public class SQLDataFetcher implements DataFetcher<ResultSetList>{
     private static final Logger LOGGER = LoggerFactory.getLogger(SQLDataFetcher.class);
-    
+
     @Override
     public ResultSetList get(DataFetchingEnvironment environment) throws Exception {
         SQLContext ctx = environment.getContext();
-        
+
         String sql = buildSQL(environment);
+        ctx.setSQL(sql);
         LOGGER.info("SQL Executed:" + sql);
-        
+
         ResultSet rs = null;
         Connection c = ctx.getConnection();
         CallableStatement stmt = c.prepareCall(sql);
@@ -61,7 +62,7 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
         ctx.setResultSet(rs);
         return new ResultSetList(rs);
     }
-    
+
     private GraphQLDirective sqlDirective(List<GraphQLDirective> directives) {
         if (directives == null) {
             return null;
@@ -97,7 +98,7 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
         GraphQLDirective sqldirective = sqlDirective(environment.getFieldDefinition().getDirectives());
         if (sqldirective == null) {
             sb.append(environment.getMergedField().getName());
-        } else {            
+        } else {
             GraphQLArgument arg = sqldirective.getArgument("from");
             sb.append(arg.getValue().toString());
         }

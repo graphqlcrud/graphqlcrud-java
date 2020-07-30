@@ -18,6 +18,7 @@ package io.graphqlcrud;
 import java.util.ArrayList;
 import java.util.List;
 
+import graphql.language.FieldDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +65,8 @@ public class GraphQLSchemaBuilder {
         
         schema.getEntities().stream().forEach(entity -> {
             GraphQLObjectType.Builder typeBuilder = GraphQLObjectType.newObject();
+            //TODO : Model Annotations
+            typeBuilder.description(entity.getDescription());
             typeBuilder.name(entity.getName());
             
             // Add fields in a Type
