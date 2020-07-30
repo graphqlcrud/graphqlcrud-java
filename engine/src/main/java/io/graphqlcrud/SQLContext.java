@@ -25,6 +25,15 @@ public class SQLContext implements Closeable{
 
     private Connection connection;
     private ResultSet rs;
+    private String sql;
+
+    public String getSQL() {
+        return sql;
+    }
+
+    public void setSQL(String sql) {
+        this.sql = sql;
+    }
 
     public SQLContext(Connection connection) {
         this.connection = connection;

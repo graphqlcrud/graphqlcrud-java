@@ -19,11 +19,11 @@ import java.sql.Connection;
 
 import javax.inject.Inject;
 
-import graphql.schema.GraphQLObjectType;
+import graphql.schema.*;
+import io.graphqlcrud.model.Entity;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import graphql.schema.GraphQLSchema;
 import io.agroal.api.AgroalDataSource;
 import io.graphqlcrud.model.Schema;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -51,8 +51,8 @@ public class GraphQLSchemaBuilderTest {
             Assertions.assertEquals("account",objectType.getFieldDefinition("account").getName());
             Assertions.assertEquals("ACCOUNT_ID",objectType.getFieldDefinition("account").getArguments().get(0).getName());
 //            Assertions.assertEquals(GraphQLList.list(  GraphQLTypeReference.typeRef("CUSTOMER")),objectType.getFieldDefinition("customers").getType());
-
-
+            Assertions.assertEquals("sql",objectType.getFieldDefinition("accounts").getDirective("sql").getName());
+            Assertions.assertEquals("PUBLIC.ACCOUNT",objectType.getFieldDefinition("accounts").getDirective("sql").getArguments().get(0).getValue());
         }
     }
 }
