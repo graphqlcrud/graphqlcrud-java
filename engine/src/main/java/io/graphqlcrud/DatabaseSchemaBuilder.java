@@ -158,6 +158,7 @@ public class DatabaseSchemaBuilder {
                         fkInfo.setNullable(fkEntity.getAttribute(fkColumn).isNullable());
                         fkInfo.setCardinality(Cardinality.ONE_TO_MANY);
                     }
+                    fkInfo.setAnnotations(fkInfo.getCardinality().name(),fkColumn);
                 }
             }
             entity.setRelations(new ArrayList<Relation>(allRelations.values()));

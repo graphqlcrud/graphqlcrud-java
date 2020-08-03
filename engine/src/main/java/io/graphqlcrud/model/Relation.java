@@ -15,6 +15,8 @@
  */
 package io.graphqlcrud.model;
 
+import io.graphqlcrud.Annotations;
+
 import java.util.TreeMap;
 
 public class Relation {
@@ -24,6 +26,7 @@ public class Relation {
     private TreeMap<Short, String> referencedKeyColumns = new TreeMap<Short, String>();
     private Cardinality cardinality;
     private boolean nullable;
+    private Annotations annotations = new Annotations();
 
     public Relation(String name) {
         this.name = name;
@@ -40,6 +43,15 @@ public class Relation {
     public Entity getForeignEntity() {
         return foreignEntity;
     }
+
+    public void setAnnotations(String kind, String field) {
+        this.annotations.setRelationshipAnnotation(kind, field);
+    }
+
+    public String getAnnotations() {
+        return this.annotations.getRelationshipAnnotation();
+    }
+
     public Cardinality getCardinality() {
         return cardinality;
     }

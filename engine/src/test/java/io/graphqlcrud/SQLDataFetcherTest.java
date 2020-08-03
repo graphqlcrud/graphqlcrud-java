@@ -67,7 +67,7 @@ class SQLDataFetcherTest {
             Assertions.assertEquals(result2,"SELECT ACCOUNT_ID FROM PUBLIC.ACCOUNT");
 
             String query3 = "{\n" +
-                    "  customer(SSN : \"CST01002\") {\n" +
+                    "  findCustomer(SSN : \"CST01002\") {\n" +
                     "    SSN\n" +
                     "  }\n" +
                     "}";

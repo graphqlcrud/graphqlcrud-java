@@ -116,7 +116,7 @@ public class GraphQLSchemaBuilder {
         // get find(id) like method for entity
         {
         if (!entity.getPrimaryKeys().isEmpty()) {
-            String name = entity.getName().toLowerCase();
+            String name = "find" + StringUtil.capitalize(entity.getName().toLowerCase());
             GraphQLFieldDefinition.Builder builder = GraphQLFieldDefinition.newFieldDefinition();
             builder.name(name);
             builder.type(new GraphQLTypeReference(entity.getName()));
@@ -159,6 +159,7 @@ public class GraphQLSchemaBuilder {
                 if (relation.getForeignEntity().getName().equals(entity.getName())) {
                     GraphQLFieldDefinition.Builder fieldBuilder = GraphQLFieldDefinition.newFieldDefinition();
                     fieldBuilder.name(relation.getName());
+                    fieldBuilder.description(relation.getAnnotations());
                     if (relation.isNullable()) {
                         fieldBuilder.type(GraphQLList.list(new GraphQLTypeReference(e.getName())));
                     } else {
