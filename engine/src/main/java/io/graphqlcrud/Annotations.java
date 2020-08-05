@@ -2,14 +2,22 @@ package io.graphqlcrud;
 
 public class Annotations {
     public String kind;
-    public String field;
+    public String primaryField;
+    public  String foreignField;
 
-    public void setRelationshipAnnotation(String kind, String field) {
+    public void setAnnotation(String kind, String primaryField, String foreignField) {
         this.kind = kind;
-        this.field = field;
+        this.primaryField = primaryField;
+        this.foreignField = foreignField;
     }
 
-    public String getRelationshipAnnotation() {
-        return " @" + kind + "(field: \'" + field + "\') ";
+    public String getKind() {
+        return kind;
     }
+
+    public String getPrimaryField() {
+        return primaryField;
+    }
+
+    public String getForeignField() { return foreignField; }
 }

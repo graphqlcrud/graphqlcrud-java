@@ -68,7 +68,7 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
             return null;
         }
         for (GraphQLDirective d : directives) {
-            if (d.getName().equals("sql")) {
+            if (d.getName().equals("sql")  || d.getName().equals("relation") || d.getName().equals("type")) {
                 return d;
             }
         }
@@ -78,31 +78,61 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
     private String buildSQL(DataFetchingEnvironment environment) {
         StringBuilder sb = new StringBuilder();
         sb.append("SELECT ");
-        
+
+        GraphQLDirective parentDirective = sqlDirective(environment.getFieldDefinition().getDirectives());
+        GraphQLArgument parentArg = parentDirective.getArgument("from");
+        GraphQLDirective joinDir = null;
+
         List<SelectedField> fields = environment.getSelectionSet().getFields();
         for (int i = 0; i < fields.size(); i++) {
             SelectedField field = fields.get(i);
-            GraphQLFieldDefinition definition =  field.getFieldDefinition();
-            GraphQLType type = definition.getType();
-            if (type instanceof GraphQLModifiedType) {
-                type = ((GraphQLModifiedType) type).getWrappedType();
-            }
-            if (GraphQLTypeUtil.isScalar(type)) {
-                sb.append(field.getName());
-                if (i < fields.size() - 1) {
-                    sb.append(",");
+            GraphQLFieldDefinition definition = field.getFieldDefinition();
+
+            GraphQLDirective fieldDirective = sqlDirective(definition.getDirectives());
+
+            GraphQLArgument relationArg = fieldDirective.getArgument("kind");
+            GraphQLArgument fieldArg = fieldDirective.getArgument("tablename");
+            if (relationArg == null) {
+                if (parentArg.getValue().toString().equals(fieldArg.getValue().toString())) {
+                    sb.append(parentArg.getValue().toString());
+                } else {
+                    sb.append(fieldArg.getValue().toString());
+                }
+
+                GraphQLType type = definition.getType();
+                if (type instanceof GraphQLModifiedType) {
+                    type = ((GraphQLModifiedType) type).getWrappedType();
+                }
+                if (GraphQLTypeUtil.isScalar(type)) {
+                    sb.append("." + field.getName());
+                    if (i < fields.size() - 1) {
+                        sb.append(",");
+                    }
                 }
             }
+            else {
+                joinDir = fieldDirective;
+            }
         }
+
         sb.append(" FROM ");
-        GraphQLDirective sqldirective = sqlDirective(environment.getFieldDefinition().getDirectives());
-        if (sqldirective == null) {
-            sb.append(environment.getMergedField().getName());
-        } else {
-            GraphQLArgument arg = sqldirective.getArgument("from");
-            sb.append(arg.getValue().toString());
-        }
-        
+        if (joinDir == null) {
+//            sb.append(environment.getMergedField().getName());
+            sb.append(parentArg.getValue().toString());
+        } else  {
+            GraphQLArgument joinArg = joinDir.getArgument("tablename");
+
+                if (joinArg.getValue().toString().equals(parentArg.getValue().toString())){
+                    sb.append(parentArg.getValue().toString());
+                 }
+                else {
+                    sb.append(parentArg.getValue().toString() + " INNER JOIN " + joinArg.getValue().toString());
+                    sb.append(" ON ");
+                    GraphQLArgument primaryArg = joinDir.getArgument("primaryField");
+                    GraphQLArgument foreignArg = joinDir.getArgument("foreignField");
+                    sb.append(parentArg.getValue().toString() + "." + foreignArg.getValue().toString() + " = " + joinArg.getValue().toString() + "." + primaryArg.getValue().toString());
+                }
+            }
         Field f = environment.getField();
         List<Argument> args = f.getArguments();
         if (args != null && !args.isEmpty()) {

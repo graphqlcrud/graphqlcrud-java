@@ -44,13 +44,15 @@ public class Relation {
         return foreignEntity;
     }
 
-    public void setAnnotations(String kind, String field) {
-        this.annotations.setRelationshipAnnotation(kind, field);
+    public void setAnnotations(String kind, String primaryField, String foreignField) {
+        this.annotations.setAnnotation(kind, primaryField, foreignField);
     }
 
-    public String getAnnotations() {
-        return this.annotations.getRelationshipAnnotation();
-    }
+    public String getKind() { return this.annotations.getKind(); }
+
+    public String getPrimaryField() { return this.annotations.getPrimaryField(); }
+
+    public String getForeignField() { return  this.annotations.getForeignField(); }
 
     public Cardinality getCardinality() {
         return cardinality;
