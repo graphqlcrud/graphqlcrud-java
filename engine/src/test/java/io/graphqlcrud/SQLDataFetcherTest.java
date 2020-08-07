@@ -74,15 +74,16 @@ class SQLDataFetcherTest {
             String result3 = executeSQL(query3,graphQLSchema);
             Assertions.assertEquals(result3,"SELECT PUBLIC.CUSTOMER.SSN FROM PUBLIC.CUSTOMER WHERE SSN = 'CST01002'");
 
-            String query4 = "{\n" +
-                    "  customers {\n" +
-                    "    accounts {\n" +
-                    "      SSN\n" +
-                    "    }\n" +
-                    "  }\n" +
-                    "}";
-            String result4 = executeSQL(query4,graphQLSchema);
-            Assertions.assertEquals(result4,"SELECT PUBLIC.ACCOUNT.SSN FROM PUBLIC.CUSTOMER INNER JOIN PUBLIC.ACCOUNT ON PUBLIC.CUSTOMER.SSN = PUBLIC.ACCOUNT.SSN");
+//            String query4 = "{\n" +
+//                    "  customers {\n" +
+//                    "    SSN\n" +
+//                    "    accounts {\n" +
+//                    "      ACCOUNT_ID\n" +
+//                    "    }\n" +
+//                    "  }\n" +
+//                    "}";
+//            String result4 = executeSQL(query4,graphQLSchema);
+//            Assertions.assertEquals(result4,"SELECT PUBLIC.CUSTOMER.SSN,PUBLIC.ACCOUNT.ACCOUNT_ID FROM PUBLIC.CUSTOMER INNER JOIN PUBLIC.ACCOUNT ON PUBLIC.CUSTOMER.SSN = PUBLIC.ACCOUNT.SSN");
         }
     }
 

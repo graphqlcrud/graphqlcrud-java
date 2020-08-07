@@ -81,6 +81,7 @@ public class GraphQLSchemaBuilder {
         opBuilder.name("query").typeName(TypeName.newTypeName("QueryType").build());
         schemaDefinitionBuilder.operationTypeDefinition(opBuilder.build());
         builder.definition(schemaDefinitionBuilder.build());
+        builder.additionalDirective(SQLDirectives.directive(null,null,null,null));
 
         builder.codeRegistry(codeBuilder.build());
 
@@ -93,7 +94,7 @@ public class GraphQLSchemaBuilder {
             String name = StringUtil.plural(entity.getName()).toLowerCase();
             GraphQLFieldDefinition.Builder builder = GraphQLFieldDefinition.newFieldDefinition();
             builder.name(name);
-            builder.withDirective(SQLDirectives.sqlDirective(entity));
+            builder.withDirective(SQLDirectives.directive(entity.getParent().getName() + "." + entity.getName(),null,null,null));
             builder.type(GraphQLList.list(new GraphQLTypeReference(entity.getName())));
             queryTypeBuilder.field(builder.build());
             codeBuilder.dataFetcher(FieldCoordinates.coordinates("QueryType", name), DEFAULT_DATA_FETCHER_FACTORY);
@@ -106,7 +107,7 @@ public class GraphQLSchemaBuilder {
                 GraphQLFieldDefinition.Builder builder = GraphQLFieldDefinition.newFieldDefinition();
                 builder.name(name);
                 builder.type(new GraphQLTypeReference(entity.getName()));
-                builder.withDirective(SQLDirectives.sqlDirective(entity));
+                builder.withDirective(SQLDirectives.directive(entity.getParent().getName() + "." + entity.getName(),null,null,null));
                 entity.getPrimaryKeys().stream().forEach(str -> {
                     GraphQLArgument.Builder argument = GraphQLArgument.newArgument();
                     argument.name(str).type(Scalars.GraphQLID);
@@ -126,7 +127,7 @@ public class GraphQLSchemaBuilder {
         entity.getAttributes().stream().forEach(attr -> {
             GraphQLFieldDefinition.Builder fieldBuilder = GraphQLFieldDefinition.newFieldDefinition();
             fieldBuilder.name(attr.getName());
-            fieldBuilder.withDirective(SQLDirectives.typeDirective(entity));
+            fieldBuilder.withDirective(SQLDirectives.directive(entity.getParent().getName() + "." + entity.getName(),null,null,null));
             if (entity.isPartOfPrimaryKey(attr.getName())) {
                 fieldBuilder.type(GraphQLNonNull.nonNull(Scalars.GraphQLID));
             } else {
@@ -146,7 +147,7 @@ public class GraphQLSchemaBuilder {
                 if (relation.getForeignEntity().getName().equals(entity.getName())) {
                     GraphQLFieldDefinition.Builder fieldBuilder = GraphQLFieldDefinition.newFieldDefinition();
                     fieldBuilder.name(relation.getName());
-                    fieldBuilder.withDirective(SQLDirectives.relationDirective(relation, e));
+                    fieldBuilder.withDirective(SQLDirectives.directive(entity.getParent().getName() + "." + entity.getName(),relation.getKind(),relation.getPrimaryField(),relation.getForeignField()));
                     if (relation.isNullable()) {
                         fieldBuilder.type(GraphQLList.list(new GraphQLTypeReference(e.getName())));
                     } else {

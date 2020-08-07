@@ -68,7 +68,7 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
             return null;
         }
         for (GraphQLDirective d : directives) {
-            if (d.getName().equals("sql")  || d.getName().equals("relation") || d.getName().equals("type")) {
+            if (d.getName().equals("sql")) {
                 return d;
             }
         }
@@ -80,7 +80,7 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
         sb.append("SELECT ");
 
         GraphQLDirective parentDirective = sqlDirective(environment.getFieldDefinition().getDirectives());
-        GraphQLArgument parentArg = parentDirective.getArgument("from");
+        GraphQLArgument parentArg = parentDirective.getArgument("tablename");
         GraphQLDirective joinDir = null;
 
         List<SelectedField> fields = environment.getSelectionSet().getFields();
@@ -92,7 +92,7 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
 
             GraphQLArgument relationArg = fieldDirective.getArgument("kind");
             GraphQLArgument fieldArg = fieldDirective.getArgument("tablename");
-            if (relationArg == null) {
+            if (relationArg.getValue() == null) {
                 if (parentArg.getValue().toString().equals(fieldArg.getValue().toString())) {
                     sb.append(parentArg.getValue().toString());
                 } else {

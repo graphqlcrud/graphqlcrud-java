@@ -51,7 +51,7 @@ public class GraphQLSchemaBuilderTest {
             Assertions.assertEquals("ACCOUNT_ID",objectType.getFieldDefinition("account").getArguments().get(0).getName());
 //            Assertions.assertEquals(GraphQLList.list(  GraphQLTypeReference.typeRef("CUSTOMER")),objectType.getFieldDefinition("customers").getType());
             Assertions.assertEquals("sql",objectType.getFieldDefinition("accounts").getDirective("sql").getName());
-            Assertions.assertEquals("PUBLIC.ACCOUNT",objectType.getFieldDefinition("accounts").getDirective("sql").getArguments().get(0).getValue());
+            Assertions.assertEquals("PUBLIC.ACCOUNT",objectType.getFieldDefinition("accounts").getDirective("sql").getArgument("tablename").getValue().toString());
         }
     }
 }
