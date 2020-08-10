@@ -19,10 +19,12 @@ import java.sql.Connection;
 
 import javax.inject.Inject;
 
-import graphql.schema.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLSchema;
 import io.agroal.api.AgroalDataSource;
 import io.graphqlcrud.model.Schema;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -49,9 +51,14 @@ public class GraphQLSchemaBuilderTest {
             Assertions.assertEquals("QueryType", objectType.getName());
             Assertions.assertEquals("account",objectType.getFieldDefinition("account").getName());
             Assertions.assertEquals("ACCOUNT_ID",objectType.getFieldDefinition("account").getArguments().get(0).getName());
-//            Assertions.assertEquals(GraphQLList.list(  GraphQLTypeReference.typeRef("CUSTOMER")),objectType.getFieldDefinition("customers").getType());
-            Assertions.assertEquals("sql",objectType.getFieldDefinition("accounts").getDirective("sql").getName());
-            Assertions.assertEquals("PUBLIC.ACCOUNT",objectType.getFieldDefinition("accounts").getDirective("sql").getArgument("tablename").getValue().toString());
+
+            GraphQLObjectType customer = schema.getObjectType("CUSTOMER");
+            Assertions.assertNotNull(customer);
+            Assertions.assertEquals("PUBLIC.CUSTOMER", customer.getDirective("sql").getArgument("table").getValue().toString());
+            GraphQLFieldDefinition accountsDef = customer.getFieldDefinition("accounts");
+            Assertions.assertNotNull(accountsDef.getDirective("sql"));
+            Assertions.assertEquals("[SSN]", accountsDef.getDirective("sql").getArgument("keys").getValue().toString());
+            Assertions.assertEquals("[SSN]", accountsDef.getDirective("sql").getArgument("reference_keys").getValue().toString());
         }
     }
 }

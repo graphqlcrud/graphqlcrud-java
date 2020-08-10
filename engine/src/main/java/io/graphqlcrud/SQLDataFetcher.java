@@ -18,23 +18,38 @@ package io.graphqlcrud;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.teiid.language.AndOr;
+import org.teiid.language.ColumnReference;
+import org.teiid.language.Comparison;
+import org.teiid.language.Condition;
+import org.teiid.language.DerivedColumn;
+import org.teiid.language.Expression;
+import org.teiid.language.Join;
+import org.teiid.language.Literal;
+import org.teiid.language.NamedTable;
+import org.teiid.language.Select;
+import org.teiid.language.TableReference;
+import org.teiid.language.visitor.SQLStringVisitor;
 
 import graphql.language.Argument;
 import graphql.language.BooleanValue;
 import graphql.language.Field;
+import graphql.language.FloatValue;
 import graphql.language.IntValue;
+import graphql.language.Selection;
 import graphql.language.StringValue;
 import graphql.language.Value;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.GraphQLArgument;
-import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLModifiedType;
+import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeUtil;
 import graphql.schema.SelectedField;
@@ -63,97 +78,126 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
         return new ResultSetList(rs);
     }
 
-    private GraphQLDirective sqlDirective(List<GraphQLDirective> directives) {
-        if (directives == null) {
-            return null;
-        }
-        for (GraphQLDirective d : directives) {
-            if (d.getName().equals("sql")) {
-                return d;
-            }
-        }
-        return null;
+    private String alias(int i) {
+        return "g"+i;
     }
 
     private String buildSQL(DataFetchingEnvironment environment) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("SELECT ");
+        AtomicInteger inc = new AtomicInteger(0);
+        Select select = new Select(new ArrayList<DerivedColumn>(), false, new ArrayList<TableReference>(), null, null,
+                null, null);
 
-        GraphQLDirective parentDirective = sqlDirective(environment.getFieldDefinition().getDirectives());
-        GraphQLArgument parentArg = parentDirective.getArgument("tablename");
-        GraphQLDirective joinDir = null;
+        // the parent query like "customers" definition
+        Field rootFeild = environment.getField();
+        GraphQLFieldDefinition rootDefinition = environment.getFieldDefinition();
+        NamedTable table = buildTable(rootDefinition, inc);
 
-        List<SelectedField> fields = environment.getSelectionSet().getFields();
-        for (int i = 0; i < fields.size(); i++) {
-            SelectedField field = fields.get(i);
-            GraphQLFieldDefinition definition = field.getFieldDefinition();
+        // add select
+        TableReference from = buildSelect(environment, select, table, rootFeild, rootDefinition, null, inc);
 
-            GraphQLDirective fieldDirective = sqlDirective(definition.getDirectives());
+        // add from
+        select.getFrom().add(from);
 
-            GraphQLArgument relationArg = fieldDirective.getArgument("kind");
-            GraphQLArgument fieldArg = fieldDirective.getArgument("tablename");
-            if (relationArg.getValue() == null) {
-                if (parentArg.getValue().toString().equals(fieldArg.getValue().toString())) {
-                    sb.append(parentArg.getValue().toString());
-                } else {
-                    sb.append(fieldArg.getValue().toString());
-                }
+        // condition
+        select.setWhere(buildWhere(table, environment.getField()));
+        return SQLStringVisitor.getSQLString(select);
+    }
 
-                GraphQLType type = definition.getType();
-                if (type instanceof GraphQLModifiedType) {
-                    type = ((GraphQLModifiedType) type).getWrappedType();
-                }
-                if (GraphQLTypeUtil.isScalar(type)) {
-                    sb.append("." + field.getName());
-                    if (i < fields.size() - 1) {
-                        sb.append(",");
-                    }
-                }
-            }
-            else {
-                joinDir = fieldDirective;
-            }
+    private TableReference buildSelect(DataFetchingEnvironment environment, Select select, TableReference left,
+            Field rootFeild, GraphQLFieldDefinition rootFieldDefinition, String fqn, AtomicInteger inc) {
+
+        NamedTable table = null;
+        if (left instanceof NamedTable) {
+            table = (NamedTable)left;
+        } else if (left instanceof Join) {
+            table = (NamedTable)((Join)left).getRightItem();
         }
 
-        sb.append(" FROM ");
-        if (joinDir == null) {
-//            sb.append(environment.getMergedField().getName());
-            sb.append(parentArg.getValue().toString());
-        } else  {
-            GraphQLArgument joinArg = joinDir.getArgument("tablename");
+        // SQL directive on the relation
+        SQLDirective rootSqlDirective = SQLDirective.find(rootFieldDefinition.getDirectives());
+        GraphQLType rootType = rootFieldDefinition.getType();
+        if (rootType instanceof GraphQLModifiedType) {
+            rootType = ((GraphQLModifiedType) rootType).getWrappedType();
+        }
 
-                if (joinArg.getValue().toString().equals(parentArg.getValue().toString())){
-                    sb.append(parentArg.getValue().toString());
-                 }
-                else {
-                    sb.append(parentArg.getValue().toString() + " INNER JOIN " + joinArg.getValue().toString());
-                    sb.append(" ON ");
-                    GraphQLArgument primaryArg = joinDir.getArgument("primaryField");
-                    GraphQLArgument foreignArg = joinDir.getArgument("foreignField");
-                    sb.append(parentArg.getValue().toString() + "." + foreignArg.getValue().toString() + " = " + joinArg.getValue().toString() + "." + primaryArg.getValue().toString());
+        if (GraphQLTypeUtil.isScalar(rootType)) {
+            select.getDerivedColumns().add(new DerivedColumn(null, new ColumnReference(table, rootFeild.getName(), null, null)));
+        } else if (rootType instanceof GraphQLObjectType) {
+            SQLDirective sqlDirective = SQLDirective.find(((GraphQLObjectType)rootType).getDirectives());
+            if (rootSqlDirective != null && rootSqlDirective.getPrimaryFields() != null) {
+                NamedTable right = buildTable(rootFieldDefinition, inc);
+                Condition c = null;
+                for (int key = 0; key < rootSqlDirective.getPrimaryFields().size(); key++) {
+                    Comparison comp = new Comparison(
+                            new ColumnReference(table, rootSqlDirective.getPrimaryFields().get(key), null, null),
+                            new ColumnReference(right, rootSqlDirective.getForeignFields().get(key), null, null),
+                            Comparison.Operator.EQ);
+                    if (key == 0) {
+                        c = comp;
+                    } else {
+                        c = new AndOr(c, comp, AndOr.Operator.AND);
+                    }
                 }
+                Join join = new Join(left, right, Join.JoinType.LEFT_OUTER_JOIN, c);
+                left = join;
             }
-        Field f = environment.getField();
+
+            // since this is object type loop through and selected fields
+            List<Selection> fields = rootFeild.getSelectionSet().getSelections();
+            for (int i = 0; i < fields.size(); i++) {
+                Field f = (Field)fields.get(i);
+                String fieldName = fqn == null ? f.getName() : fqn+"/"+f.getName();
+                SelectedField field = environment.getSelectionSet().getField(fieldName);
+                GraphQLFieldDefinition definition = field.getFieldDefinition();
+                left =  buildSelect(environment, select, left, f, definition, fieldName, inc);
+            }
+        }
+        return left;
+    }
+
+    private NamedTable buildTable(GraphQLFieldDefinition definition, AtomicInteger inc) {
+        SQLDirective parentDirective = null;
+        if (definition.getType() instanceof GraphQLModifiedType) {
+            GraphQLObjectType type = (GraphQLObjectType)((GraphQLModifiedType)definition.getType()).getWrappedType();
+            parentDirective = SQLDirective.find(type.getDirectives());
+        } else {
+            GraphQLObjectType type = (GraphQLObjectType)definition.getType();
+            parentDirective = SQLDirective.find(type.getDirectives());
+        }
+
+        // Build the main table
+        NamedTable table = new NamedTable(parentDirective.getTableName(), alias(inc.getAndIncrement()), null);
+        return table;
+    }
+
+    private Condition buildWhere(NamedTable table,  Field f) {
+        Condition c = null;
         List<Argument> args = f.getArguments();
         if (args != null && !args.isEmpty()) {
-            sb.append(" WHERE ");
             for (int i = 0; i < args.size(); i++) {
-                if (i > 0) {
-                    sb.append(" AND ");
-                }
                 Argument arg = args.get(i);
                 // TODO: Need to handle all other types of values
                 // TODO: May be this can be place holders like "?" then values in prepared statement
+                Expression left = new ColumnReference(table, arg.getName(), null, null);
+                Expression right = null;
                 Value v = arg.getValue();
                 if (v instanceof StringValue) {
-                    sb.append(arg.getName()).append(" = ").append("'").append(((StringValue) v).getValue()).append("'");
+                    right  = new Literal(((StringValue) v).getValue(), String.class);
                 } else if (v instanceof BooleanValue) {
-                    sb.append(arg.getName()).append(" = ").append("'").append(((BooleanValue)v).isValue()).append("'");
+                    right  = new Literal(((BooleanValue) v).isValue(), Boolean.class);
                 } else if (v instanceof IntValue) {
-                    sb.append(arg.getName()).append(" = ").append(((IntValue)v).getValue());
+                    right  = new Literal(((IntValue) v).getValue(), Integer.class);
+                } else if (v instanceof FloatValue) {
+                    right  = new Literal(((FloatValue) v).getValue(), Float.class);
+                }
+                Comparison compare = new Comparison(left, right, Comparison.Operator.EQ);
+                if (c ==  null) {
+                    c = compare;
+                } else {
+                    c = new AndOr(c, compare, AndOr.Operator.AND);
                 }
             }
         }
-        return sb.toString();
+        return c;
     }
 }

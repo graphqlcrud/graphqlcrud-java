@@ -16,6 +16,8 @@
 package io.graphqlcrud;
 
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 import graphql.language.Field;
 import graphql.schema.DataFetcher;
@@ -33,6 +35,16 @@ public class RowFetcher implements DataFetcher<Object> {
             source = ((ResultSetList) source).get();
         }
         Field f = environment.getField();
+
+        SQLDirective sqlDirective = SQLDirective.find(environment.getFieldDefinition().getDirectives());
+        // this is link to another table
+        if (sqlDirective != null){
+            if (sqlDirective.getForeignFields() != null) {
+                List<ResultSet> result = new ArrayList<>();
+                result.add((ResultSet)source);
+                return result;
+            }
+        }
         return ((ResultSet)source).getObject(f.getName());
     }
 }

@@ -20,17 +20,15 @@ import java.sql.SQLException;
 import java.util.AbstractList;
 import java.util.Iterator;
 
-// TODO: does not handle the closing of connection if not results are walked
-// may be think about with paging sizes to close
 class ResultSetList extends AbstractList<Object> {
     private ResultSet rs;
     private Iterator<Object> itr;
     private Object current;
-    
+
     ResultSetList(ResultSet rs){
         this.rs = rs;
     }
-    
+
     public Object get() {
         if (this.itr == null) {
             this.itr = iterator();
@@ -41,12 +39,13 @@ class ResultSetList extends AbstractList<Object> {
         }
         return current;
     }
-    
+
     @Override
     public Object get(int index) {
         return rs;
     }
-    
+
+    @Override
     public Iterator<Object> iterator() {
         final Iterator<Object> real = super.iterator();
         return new Iterator<Object>() {
@@ -56,7 +55,7 @@ class ResultSetList extends AbstractList<Object> {
                     boolean hasNext = rs.next();
                     if (!hasNext) {
                         rs.close();
-                    }                    
+                    }
                     return hasNext;
                 } catch (SQLException e) {
                     throw new RuntimeException("Failed to walk the results");
