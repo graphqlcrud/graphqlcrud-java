@@ -19,7 +19,6 @@ package io.graphqlcrud.app;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -33,12 +32,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
-import graphql.execution.instrumentation.ChainedInstrumentation;
-import graphql.execution.instrumentation.ExecutionStrategyInstrumentationContext;
-import graphql.execution.instrumentation.Instrumentation;
-import graphql.execution.instrumentation.SimpleInstrumentation;
-import graphql.execution.instrumentation.parameters.InstrumentationExecutionStrategyParameters;
-import graphql.execution.instrumentation.tracing.TracingInstrumentation;
 import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.SchemaPrinter;
 import io.agroal.api.AgroalDataSource;
@@ -51,49 +44,49 @@ import io.graphqlcrud.model.Schema;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class GraphQLResource {
-    
+
     @Inject
     private AgroalDataSource datasource;
-    
+
     private GraphQLSchema schema;
-    
+
     @ConfigProperty(name = "quarkus.datasource.schema")
     private String dbSchemaName;
-    
+
     @POST
     public Map<String, Object> graphql(String query) throws Exception {
         GraphQLSchema schema = buildSchema();
         SchemaPrinter sp = new SchemaPrinter();
         System.out.println(sp.print(schema));
-        
+
         QueryParameters qp = QueryParameters.from(query);
-        
+
         ExecutionInput.Builder executionInput = ExecutionInput.newExecutionInput()
                 .query(qp.getQuery())
                 .operationName(qp.getOperationName())
                 .variables(qp.getVariables());
-        
+
         // pass the datasource around
         try(SQLContext ctx = new SQLContext(this.datasource.getConnection())){
             executionInput.context(ctx);
-            
+
             GraphQL graphQL = GraphQL
                     .newGraphQL(schema)
                     //.instrumentation(connectionInstrumentation)
                     .build();
-            
+
             ExecutionResult executionResult = graphQL.execute(executionInput.build());
             return executionResult.toSpecification();
         }
     }
-    
+
     private GraphQLSchema buildSchema() throws SQLException {
         if (this.schema == null) {
             try(Connection conn = this.datasource.getConnection()){
                 Schema dbSchema = DatabaseSchemaBuilder.getSchema(conn, this.dbSchemaName);
-               this.schema = GraphQLSchemaBuilder.getSchema(dbSchema); 
+               this.schema = GraphQLSchemaBuilder.getSchema(dbSchema);
             }
         }
         return this.schema;
-    }    
+    }
 }

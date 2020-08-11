@@ -27,7 +27,7 @@ public class Entity implements Comparable<Entity>{
     private List<Relation> relations = new ArrayList<Relation>();
     private List<String> pks = new ArrayList<>();
     private Schema parent;
-    
+
     public Entity(String name) {
         this.name = name;
     }
@@ -36,13 +36,17 @@ public class Entity implements Comparable<Entity>{
         this.attributes.put(attribute.getName(), attribute);
     }
 
+    public String getFullName() {
+        return parent.getName() + "." + getName();
+    }
+
     public String getName() {
         return this.name;
     }
-    
+
     // TODO: this needs to built for GraphQLCRUD
     public String getDescription() {
-        return " @model ";
+        return null;
     }
 
     public List<Attribute> getAttributes() {
@@ -52,11 +56,11 @@ public class Entity implements Comparable<Entity>{
     public Attribute getAttribute(String name) {
         return attributes.get(name);
     }
-    
+
     public boolean isPartOfPrimaryKey(String name) {
         return this.pks.contains(name);
-    }    
-    
+    }
+
     public List<Relation> getRelations() {
         return relations;
     }
@@ -64,7 +68,7 @@ public class Entity implements Comparable<Entity>{
     public void setRelations(List<Relation> relations) {
         this.relations = relations;
     }
-    
+
     public List<String> getPrimaryKeys() {
         return pks;
     }

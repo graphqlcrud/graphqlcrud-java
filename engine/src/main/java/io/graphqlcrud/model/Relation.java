@@ -15,7 +15,6 @@
  */
 package io.graphqlcrud.model;
 
-import io.graphqlcrud.Annotations;
 
 import java.util.TreeMap;
 
@@ -26,7 +25,6 @@ public class Relation {
     private TreeMap<Short, String> referencedKeyColumns = new TreeMap<Short, String>();
     private Cardinality cardinality;
     private boolean nullable;
-    private Annotations annotations = new Annotations();
 
     public Relation(String name) {
         this.name = name;
@@ -39,20 +37,10 @@ public class Relation {
     public void setName(String name) {
         this.name = name;
     }
-    
+
     public Entity getForeignEntity() {
         return foreignEntity;
     }
-
-    public void setAnnotations(String kind, String primaryField, String foreignField) {
-        this.annotations.setAnnotation(kind, primaryField, foreignField);
-    }
-
-    public String getKind() { return this.annotations.getKind(); }
-
-    public String getPrimaryField() { return this.annotations.getPrimaryField(); }
-
-    public String getForeignField() { return  this.annotations.getForeignField(); }
 
     public Cardinality getCardinality() {
         return cardinality;
@@ -65,23 +53,23 @@ public class Relation {
     public void setCardinality(Cardinality cardinality) {
         this.cardinality = cardinality;
     }
-    
+
     public TreeMap<Short, String> getKeyColumns() {
         return keyColumns;
     }
-    
+
     public void setKeyColumns(TreeMap<Short, String> keyColumns) {
         this.keyColumns = keyColumns;
     }
-    
+
     public TreeMap<Short, String> getReferencedKeyColumns() {
         return referencedKeyColumns;
     }
-    
+
     public void setReferencedKeyColumns(TreeMap<Short, String> referencedKeyColumns) {
         this.referencedKeyColumns = referencedKeyColumns;
-    }      
-    
+    }
+
     public boolean isNullable() {
         return nullable;
     }
@@ -89,7 +77,7 @@ public class Relation {
     public void setNullable(boolean nullable) {
         this.nullable = nullable;
     }
-    
+
     @Override
     public String toString() {
         return "Relation{" +
@@ -98,5 +86,5 @@ public class Relation {
                 ", referencedKeyColumns=" + getReferencedKeyColumns() +
                 ", cardinality=" + (cardinality != null ? cardinality.toString() : "null") +
                 '}';
-    }  
+    }
 }
