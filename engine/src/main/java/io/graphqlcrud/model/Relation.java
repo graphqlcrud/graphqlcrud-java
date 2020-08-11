@@ -15,6 +15,7 @@
  */
 package io.graphqlcrud.model;
 
+
 import java.util.TreeMap;
 
 public class Relation {
@@ -36,10 +37,11 @@ public class Relation {
     public void setName(String name) {
         this.name = name;
     }
-    
+
     public Entity getForeignEntity() {
         return foreignEntity;
     }
+
     public Cardinality getCardinality() {
         return cardinality;
     }
@@ -51,23 +53,23 @@ public class Relation {
     public void setCardinality(Cardinality cardinality) {
         this.cardinality = cardinality;
     }
-    
+
     public TreeMap<Short, String> getKeyColumns() {
         return keyColumns;
     }
-    
+
     public void setKeyColumns(TreeMap<Short, String> keyColumns) {
         this.keyColumns = keyColumns;
     }
-    
+
     public TreeMap<Short, String> getReferencedKeyColumns() {
         return referencedKeyColumns;
     }
-    
+
     public void setReferencedKeyColumns(TreeMap<Short, String> referencedKeyColumns) {
         this.referencedKeyColumns = referencedKeyColumns;
-    }      
-    
+    }
+
     public boolean isNullable() {
         return nullable;
     }
@@ -75,7 +77,7 @@ public class Relation {
     public void setNullable(boolean nullable) {
         this.nullable = nullable;
     }
-    
+
     @Override
     public String toString() {
         return "Relation{" +
@@ -84,5 +86,5 @@ public class Relation {
                 ", referencedKeyColumns=" + getReferencedKeyColumns() +
                 ", cardinality=" + (cardinality != null ? cardinality.toString() : "null") +
                 '}';
-    }  
+    }
 }

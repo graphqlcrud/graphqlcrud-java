@@ -18,7 +18,6 @@ package io.graphqlcrud;
 import java.util.ArrayList;
 import java.util.List;
 
-import graphql.language.FieldDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +28,6 @@ import graphql.language.TypeName;
 import graphql.schema.FieldCoordinates;
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLCodeRegistry;
-import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLNonNull;
@@ -51,91 +49,85 @@ public class GraphQLSchemaBuilder {
     public static GraphQLSchema getSchema(Schema schema) {
         GraphQLSchemaBuilder b = new GraphQLSchemaBuilder();
         return b.buildSchema(schema);
-    }    
-    
+    }
+
     public GraphQLSchema buildSchema(Schema schema) {
         LOGGER.debug("Building GraphQL Schema based entity model");
         GraphQLSchema.Builder builder = GraphQLSchema.newSchema();
-        
+
         // add Code Registry
         GraphQLCodeRegistry.Builder codeBuilder = GraphQLCodeRegistry.newCodeRegistry();
-        
+
         GraphQLObjectType.Builder queryTypeBuilder = GraphQLObjectType.newObject();
         queryTypeBuilder.name("QueryType");
-        
+
         schema.getEntities().stream().forEach(entity -> {
             GraphQLObjectType.Builder typeBuilder = GraphQLObjectType.newObject();
             //TODO : Model Annotations
             typeBuilder.description(entity.getDescription());
             typeBuilder.name(entity.getName());
-            
+            typeBuilder.withDirective(SQLDirective.newDirective().tablename(entity.getFullName()).build());
+
             // Add fields in a Type
             buildTypeFields(entity, schema, codeBuilder).stream().forEach(fieldBuilder -> {
-                typeBuilder.field(fieldBuilder.build());    
+                typeBuilder.field(fieldBuilder.build());
             });
 
             // Add Type
             builder.additionalType(typeBuilder.build());
-            
+
             // add to main QueryType
             addQueryOperationsForEntity(entity, queryTypeBuilder, codeBuilder);
         });
-        
+
         // add "QueryType" that we have been building
         builder.query(queryTypeBuilder.build());
-        
+
         // Add Schema Definition
         SchemaDefinition.Builder schemaDefinitionBuilder = SchemaDefinition.newSchemaDefinition();
         OperationTypeDefinition.Builder opBuilder = OperationTypeDefinition.newOperationTypeDefinition();
         opBuilder.name("query").typeName(TypeName.newTypeName("QueryType").build());
         schemaDefinitionBuilder.operationTypeDefinition(opBuilder.build());
         builder.definition(schemaDefinitionBuilder.build());
-        
+
         builder.codeRegistry(codeBuilder.build());
-        
+
         return builder.build();
     }
-    
-    private GraphQLDirective sqlDirective(Entity entity) {
-        return GraphQLDirective.newDirective().name("sql").argument(GraphQLArgument.newArgument().name("from")
-                .type(Scalars.GraphQLString).value(entity.getParent().getName() + "." + entity.getName())).build();
-    }
-    
+
     private void addQueryOperationsForEntity(Entity entity, Builder queryTypeBuilder, GraphQLCodeRegistry.Builder codeBuilder) {
         // get "findAll" kind of method for the Entity
         {
-        String name = StringUtil.plural(entity.getName()).toLowerCase();
-        GraphQLFieldDefinition.Builder builder = GraphQLFieldDefinition.newFieldDefinition();
-        builder.name(name);
-        builder.withDirective(sqlDirective(entity));
-        builder.type(GraphQLList.list(new GraphQLTypeReference(entity.getName())));
-        queryTypeBuilder.field(builder.build());
-        codeBuilder.dataFetcher(FieldCoordinates.coordinates("QueryType", name), DEFAULT_DATA_FETCHER_FACTORY);
+            String name = StringUtil.plural(entity.getName()).toLowerCase();
+            GraphQLFieldDefinition.Builder builder = GraphQLFieldDefinition.newFieldDefinition();
+            builder.name(name);
+            builder.type(GraphQLList.list(new GraphQLTypeReference(entity.getName())));
+            queryTypeBuilder.field(builder.build());
+            codeBuilder.dataFetcher(FieldCoordinates.coordinates("QueryType", name), DEFAULT_DATA_FETCHER_FACTORY);
         }
 
         // get find(id) like method for entity
         {
-        if (!entity.getPrimaryKeys().isEmpty()) {
-            String name = entity.getName().toLowerCase();
-            GraphQLFieldDefinition.Builder builder = GraphQLFieldDefinition.newFieldDefinition();
-            builder.name(name);
-            builder.type(new GraphQLTypeReference(entity.getName()));
-            builder.withDirective(sqlDirective(entity));
-            entity.getPrimaryKeys().stream().forEach(str -> {
-                GraphQLArgument.Builder argument = GraphQLArgument.newArgument();
-                argument.name(str).type(Scalars.GraphQLID);
-                builder.argument(argument.build());
-            });
-            queryTypeBuilder.field(builder.build());
-            codeBuilder.dataFetcher(FieldCoordinates.coordinates("QueryType", name), DEFAULT_DATA_FETCHER_FACTORY);
-        }
+            if (!entity.getPrimaryKeys().isEmpty()) {
+                String name = entity.getName().toLowerCase();
+                GraphQLFieldDefinition.Builder builder = GraphQLFieldDefinition.newFieldDefinition();
+                builder.name(name);
+                builder.type(new GraphQLTypeReference(entity.getName()));
+                entity.getPrimaryKeys().stream().forEach(str -> {
+                    GraphQLArgument.Builder argument = GraphQLArgument.newArgument();
+                    argument.name(str).type(Scalars.GraphQLID);
+                    builder.argument(argument.build());
+                });
+                queryTypeBuilder.field(builder.build());
+                codeBuilder.dataFetcher(FieldCoordinates.coordinates("QueryType", name), DEFAULT_DATA_FETCHER_FACTORY);
+            }
         }
     }
 
     protected List<GraphQLFieldDefinition.Builder> buildTypeFields(Entity entity, Schema schema,
-            GraphQLCodeRegistry.Builder codeBuilder) {
+                                                                   GraphQLCodeRegistry.Builder codeBuilder) {
         ArrayList<GraphQLFieldDefinition.Builder> fields = new ArrayList<GraphQLFieldDefinition.Builder>();
-        
+
         // build fields for every attribute
         entity.getAttributes().stream().forEach(attr -> {
             GraphQLFieldDefinition.Builder fieldBuilder = GraphQLFieldDefinition.newFieldDefinition();
@@ -146,25 +138,29 @@ public class GraphQLSchemaBuilder {
                 if (attr.isNullable()) {
                     fieldBuilder.type(TYPEMAP.getAsGraphQLTypeString(attr.getType()));
                 } else {
-                   fieldBuilder.type(GraphQLNonNull.nonNull(TYPEMAP.getAsGraphQLTypeString(attr.getType())));
+                    fieldBuilder.type(GraphQLNonNull.nonNull(TYPEMAP.getAsGraphQLTypeString(attr.getType())));
                 }
             }
             fields.add(fieldBuilder);
             codeBuilder.dataFetcher(FieldCoordinates.coordinates(entity.getName(), attr.getName()), DEFAULT_ROW_FETCHER_FACTORY);
         });
-        
+
         // build fields based on relationships which reference to other types
         schema.getEntities().stream().forEach(e -> {
             e.getRelations().stream().forEach(relation -> {
                 if (relation.getForeignEntity().getName().equals(entity.getName())) {
                     GraphQLFieldDefinition.Builder fieldBuilder = GraphQLFieldDefinition.newFieldDefinition();
                     fieldBuilder.name(relation.getName());
+                    fieldBuilder.withDirective(SQLDirective.newDirective()
+                            .primaryFields(new ArrayList<String>(relation.getKeyColumns().values()))
+                            .foreignFields(new ArrayList<String>(relation.getReferencedKeyColumns().values())).build());
                     if (relation.isNullable()) {
                         fieldBuilder.type(GraphQLList.list(new GraphQLTypeReference(e.getName())));
                     } else {
                         fieldBuilder.type(GraphQLNonNull.nonNull(GraphQLList.list(new GraphQLTypeReference(e.getName()))));
                     }
                     fields.add(fieldBuilder);
+                    codeBuilder.dataFetcher(FieldCoordinates.coordinates(entity.getName(), relation.getName()), DEFAULT_ROW_FETCHER_FACTORY);
                 }
             });
         });

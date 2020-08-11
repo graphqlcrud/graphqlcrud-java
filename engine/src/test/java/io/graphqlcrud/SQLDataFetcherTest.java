@@ -19,13 +19,14 @@ import java.sql.Connection;
 
 import javax.inject.Inject;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
 import graphql.GraphQL;
-import graphql.schema.*;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-
+import graphql.schema.GraphQLSchema;
 import io.agroal.api.AgroalDataSource;
 import io.graphqlcrud.model.Schema;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -34,51 +35,95 @@ import io.quarkus.test.junit.QuarkusTest;
 
 @QuarkusTestResource(H2DatabaseTestResource.class)
 @QuarkusTest
-
 class SQLDataFetcherTest {
 
     @Inject
     private AgroalDataSource datasource;
+    private GraphQLSchema graphQLSchema;
 
-    @Test
-    public void testDataFetcher() throws Exception {
-
+    @BeforeEach
+    public void setup() throws Exception {
         try (Connection connection = datasource.getConnection()) {
             Assertions.assertNotNull(connection);
             Schema schema = DatabaseSchemaBuilder.getSchema(connection, "PUBLIC");
             Assertions.assertNotNull(schema);
-            GraphQLSchema graphQLSchema = GraphQLSchemaBuilder.getSchema(schema);
-            Assertions.assertNotNull(graphQLSchema);
-
-            String query1 = "{\n" +
-                    "  customers {\n" +
-                    "    SSN\n" +
-                    "  }\n" +
-                    "}";
-            String result1 = executeSQL(query1,graphQLSchema);
-            Assertions.assertEquals(result1,"SELECT SSN FROM PUBLIC.CUSTOMER");
-
-            String query2 = "{\n" +
-                    "  accounts {\n" +
-                    "    ACCOUNT_ID\n" +
-                    "  }\n" +
-                    "}";
-            String result2 = executeSQL(query2,graphQLSchema);
-            Assertions.assertEquals(result2,"SELECT ACCOUNT_ID FROM PUBLIC.ACCOUNT");
-
-            String query3 = "{\n" +
-                    "  customer(SSN : \"CST01002\") {\n" +
-                    "    SSN\n" +
-                    "  }\n" +
-                    "}";
-            String result3 = executeSQL(query3,graphQLSchema);
-            Assertions.assertEquals(result3,"SELECT SSN FROM PUBLIC.CUSTOMER WHERE SSN = 'CST01002'");
-
+            this.graphQLSchema = GraphQLSchemaBuilder.getSchema(schema);
+            Assertions.assertNotNull(this.graphQLSchema);
         }
     }
 
     @Test
-    public String executeSQL(String query, GraphQLSchema graphQLSchema) throws Exception {
+    public void testSimplequery() throws Exception {
+        String query1 = "{\n" +
+                "  customers {\n" +
+                "    SSN\n" +
+                "  }\n" +
+                "}";
+        String result1 = executeSQL(query1);
+        Assertions.assertEquals("SELECT g0.SSN FROM PUBLIC.CUSTOMER AS g0", result1);
+
+        String query2 = "{\n" +
+                "  accounts {\n" +
+                "    ACCOUNT_ID\n" +
+                "  }\n" +
+                "}";
+        String result2 = executeSQL(query2);
+        Assertions.assertEquals("SELECT g0.ACCOUNT_ID FROM PUBLIC.ACCOUNT AS g0", result2);
+    }
+
+    @Test
+    public void testQueryWithID()  throws Exception {
+        String query3 = "{\n" +
+                "  customer(SSN : \"CST01002\") {\n" +
+                "    SSN\n" +
+                "  }\n" +
+                "}";
+        String result3 = executeSQL(query3);
+        Assertions.assertEquals("SELECT g0.SSN FROM PUBLIC.CUSTOMER AS g0 WHERE g0.SSN = 'CST01002'", result3);
+    }
+
+    @Test
+    public void testNestedQuery() throws Exception {
+        String query4 = "{\n" +
+          "  customers {\n" +
+          "    SSN\n" +
+          "    accounts {\n" +
+          "      ACCOUNT_ID\n" +
+          "    }\n" +
+          "  }\n" +
+          "}";
+        String result4 = executeSQL(query4);
+        Assertions.assertEquals(
+                "SELECT g0.SSN, g1.ACCOUNT_ID FROM PUBLIC.CUSTOMER AS g0 "
+                + "LEFT OUTER JOIN PUBLIC.ACCOUNT AS g1 ON g0.SSN = g1.SSN",
+                result4);
+    }
+
+    @Test
+    public void testDeepNestedQuery() throws Exception {
+        String query4 = "{\n" +
+          "  customers {\n" +
+          "    SSN\n" +
+          "    accounts {\n" +
+          "      ACCOUNT_ID\n" +
+          "      holdinges {\n" +
+          "        PRODUCT_ID,\n" +
+          "        SHARES_COUNT\n" +
+          "      }\n" +
+          "    }\n" +
+          "  }\n" +
+          "}";
+        String result4 = executeSQL(query4);
+        Assertions.assertEquals(
+                "SELECT g0.SSN, g1.ACCOUNT_ID, g2.PRODUCT_ID, g2.SHARES_COUNT "
+                + "FROM PUBLIC.CUSTOMER AS g0 "
+                + "LEFT OUTER JOIN PUBLIC.ACCOUNT AS g1 ON g0.SSN = g1.SSN "
+                + "LEFT OUTER JOIN PUBLIC.HOLDINGS AS g2 ON g1.ACCOUNT_ID = g2.ACCOUNT_ID",
+                result4);
+    }
+
+    @Test
+    public String executeSQL(String query) throws Exception {
         String sql;
         ExecutionInput.Builder executionInput = ExecutionInput.newExecutionInput()
                 .query(query);
@@ -87,7 +132,7 @@ class SQLDataFetcherTest {
             executionInput.context(ctx);
 
             GraphQL graphQL = GraphQL
-                    .newGraphQL(graphQLSchema)
+                    .newGraphQL(this.graphQLSchema)
                     .build();
 
             ExecutionResult executionResult = graphQL.execute(executionInput.build());
