@@ -59,6 +59,10 @@ public class GraphQLSchemaBuilderTest {
             Assertions.assertNotNull(accountsDef.getDirective("sql"));
             Assertions.assertEquals("[SSN]", accountsDef.getDirective("sql").getArgument("keys").getValue().toString());
             Assertions.assertEquals("[SSN]", accountsDef.getDirective("sql").getArgument("reference_keys").getValue().toString());
+
+            GraphQLFieldDefinition fieldDefinition = objectType.getFieldDefinition("customers");
+            Assertions.assertEquals("page",fieldDefinition.getArguments().get(0).getName());
+            Assertions.assertEquals("filter", fieldDefinition.getArguments().get(1).getName());
         }
     }
 }
