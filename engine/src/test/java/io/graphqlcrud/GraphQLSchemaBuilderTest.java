@@ -20,6 +20,7 @@ import java.sql.Connection;
 import javax.inject.Inject;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import graphql.schema.GraphQLFieldDefinition;
@@ -64,5 +65,5 @@ public class GraphQLSchemaBuilderTest {
             Assertions.assertEquals("page",fieldDefinition.getArguments().get(0).getName());
             Assertions.assertEquals("filter", fieldDefinition.getArguments().get(1).getName());
         }
-    }
+   }
 }
