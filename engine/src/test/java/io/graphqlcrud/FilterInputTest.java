@@ -186,18 +186,4 @@ public class FilterInputTest {
         });
     }
 
-    @Test
-    public void testQueryFilterInput() {
-        graphQLSchema.getTypeMap().entrySet().forEach( parent -> {
-            if(parent.getKey().equals("QueryFilter")) {
-                    Assertions.assertEquals("QueryFilter",parent.getValue().getName());
-                    parent.getValue().getChildren().forEach(child -> {
-                        if(child.toString().contains("name=and"))
-                            Assertions.assertTrue(child.toString().contains("originalType=[QueryFilter]"));
-                        else if(child.toString().contains("name=or"))
-                            Assertions.assertTrue(child.toString().contains("originalType=[QueryFilter]"));
-                    });
-                }
-        });
-    }
 }

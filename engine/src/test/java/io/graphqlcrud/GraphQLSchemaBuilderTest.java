@@ -20,7 +20,6 @@ import java.sql.Connection;
 import javax.inject.Inject;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import graphql.schema.GraphQLFieldDefinition;
@@ -64,6 +63,17 @@ public class GraphQLSchemaBuilderTest {
             GraphQLFieldDefinition fieldDefinition = objectType.getFieldDefinition("customers");
             Assertions.assertEquals("page",fieldDefinition.getArguments().get(0).getName());
             Assertions.assertEquals("filter", fieldDefinition.getArguments().get(1).getName());
+            if(fieldDefinition.getArgument("filter").getType().toString().contains("CustomerFilterType")) {
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("APT_NUMBER"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("CITY"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("FIRSTNAME"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("LASTNAME"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("ST_ADDRESS"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("ZIPCODE"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("PHONE"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("STATE"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("SSN"));
+            }
         }
    }
 }

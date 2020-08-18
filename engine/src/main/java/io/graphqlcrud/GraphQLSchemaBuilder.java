@@ -62,7 +62,16 @@ public class GraphQLSchemaBuilder {
         builder.additionalType(Filters.floatInputBuilder().build());
         builder.additionalType(Filters.sortDirectionEnumBuilder().build());
         builder.additionalType(Filters.orderByInputBuilder().build());
-        builder.additionalType(Filters.filterInputBuilder().build());
+
+        //add FilterInputTypes
+        schema.getEntities().stream().forEach(filterEntity -> {
+            GraphQLInputObjectType.Builder  entityBuilder = GraphQLInputObjectType.newInputObject();
+            entityBuilder.name(StringUtil.capitalize(filterEntity.getName().toLowerCase()) + "FilterInput");
+            buildFilterFields(filterEntity,schema).stream().forEach(filter -> {
+                entityBuilder.field(filter.build());
+            });
+            builder.additionalType(entityBuilder.build());
+        });
 
         schema.getEntities().stream().forEach(entity -> {
             GraphQLObjectType.Builder typeBuilder = GraphQLObjectType.newObject();
@@ -104,7 +113,7 @@ public class GraphQLSchemaBuilder {
             GraphQLFieldDefinition.Builder builder = GraphQLFieldDefinition.newFieldDefinition();
             builder.name(name);
             builder.argument(GraphQLArgument.newArgument().name("page").type(GraphQLTypeReference.typeRef("PageRequest")).build());
-            builder.argument(GraphQLArgument.newArgument().name("filter").type(GraphQLTypeReference.typeRef("QueryFilter")).build());
+            builder.argument(GraphQLArgument.newArgument().name("filter").type(GraphQLTypeReference.typeRef(StringUtil.capitalize(entity.getName().toLowerCase()) + "FilterInput")).build());
             builder.argument(GraphQLArgument.newArgument().name("orderBy").type(GraphQLTypeReference.typeRef("OrderByInput")).build());
             builder.type(GraphQLList.list(new GraphQLTypeReference(entity.getName())));
             queryTypeBuilder.field(builder.build());
@@ -170,5 +179,17 @@ public class GraphQLSchemaBuilder {
             });
         });
         return fields;
+    }
+
+    protected List<GraphQLInputObjectField.Builder> buildFilterFields(Entity filterEntity, Schema schema) {
+        ArrayList<GraphQLInputObjectField.Builder> filterFields = new ArrayList<GraphQLInputObjectField.Builder>();
+
+        filterEntity.getAttributes().stream().forEach(attr -> {
+            GraphQLInputObjectField.Builder builder = GraphQLInputObjectField.newInputObjectField();
+            builder.name(attr.getName());
+            builder.type(TYPEMAP.getAsGraphQLFilterType(attr.getType()));
+            filterFields.add(builder);
+        });
+        return filterFields;
     }
 }

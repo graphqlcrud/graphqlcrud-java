@@ -11,18 +11,6 @@ public class Filters {
                 .field(GraphQLInputObjectField.newInputObjectField().name("offset").type(Scalars.GraphQLInt));
     }
 
-    public static GraphQLInputObjectType.Builder filterInputBuilder() {
-        return GraphQLInputObjectType.newInputObject().name("QueryFilter")
-                .field(GraphQLInputObjectField.newInputObjectField().name("id").type(GraphQLTypeReference.typeRef("IDInput")))
-                .field(GraphQLInputObjectField.newInputObjectField().name("title").type(GraphQLTypeReference.typeRef("StringInput")))
-                .field(GraphQLInputObjectField.newInputObjectField().name("clickCount").type(GraphQLTypeReference.typeRef("IntInput")))
-                .field(GraphQLInputObjectField.newInputObjectField().name("floatValue").type(GraphQLTypeReference.typeRef("FloatInput")))
-                .field(GraphQLInputObjectField.newInputObjectField().name("description").type(GraphQLTypeReference.typeRef("StringInput")))
-                .field(GraphQLInputObjectField.newInputObjectField().name("and").type(GraphQLList.list(GraphQLTypeReference.typeRef("QueryFilter"))))
-                .field(GraphQLInputObjectField.newInputObjectField().name("or").type(GraphQLList.list(GraphQLTypeReference.typeRef("QueryFilter"))))
-                .field(GraphQLInputObjectField.newInputObjectField().name("not").type(GraphQLTypeReference.typeRef("QueryFilter")));
-    }
-
     public static GraphQLInputObjectType.Builder stringInputBuilder() {
         return GraphQLInputObjectType.newInputObject().name("StringInput")
                 .field(GraphQLInputObjectField.newInputObjectField().name("ne").type(Scalars.GraphQLString))
