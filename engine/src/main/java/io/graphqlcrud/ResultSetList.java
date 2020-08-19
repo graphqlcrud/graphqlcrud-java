@@ -15,19 +15,28 @@
  */
 package io.graphqlcrud;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.AbstractList;
 import java.util.Iterator;
+import java.util.Map;
 
 class ResultSetList extends AbstractList<Object> {
-    private ResultSet rs;
+    private ResultSetWrapper rs;
     private Iterator<Object> itr;
     private Object current;
+    private FetchPlan plan;
+    private Map<String, Object> sameParentCriteria;
+    private boolean advanceCursor;
 
-    ResultSetList(ResultSet rs){
+    ResultSetList(ResultSetWrapper rs, Map<String, Object> criteria, boolean advanceCursor){
         this.rs = rs;
+        this.sameParentCriteria = criteria;
+        this.advanceCursor = advanceCursor;
     }
+    
+    public FetchPlan getPlan() {
+        return plan;
+    }    
 
     public Object get() {
         if (this.itr == null) {
@@ -49,13 +58,32 @@ class ResultSetList extends AbstractList<Object> {
     public Iterator<Object> iterator() {
         final Iterator<Object> real = super.iterator();
         return new Iterator<Object>() {
+            // this just makes sure that before advancing the cursor next() has been called
             @Override
             public boolean hasNext() {
                 try {
-                    boolean hasNext = rs.next();
+                    if (rs.isClosed()) {
+                        return false;
+                    }
+                    boolean hasNext = advanceCursor ? rs.next() : true; 
                     if (!hasNext) {
                         rs.close();
                     }
+                    
+                    // there is a new row, is this part of same parent?
+                    if (hasNext && sameParentCriteria != null) {
+                        if (isPartOfSameParent()) {
+                            advanceCursor = true;
+                            return true;
+                        } else {
+                            advanceCursor = false;
+                            // if advanceCursor controls drilling in, this one controls 
+                            // going back in nested results
+                            rs.setIgnoreNext(true);
+                            return false;
+                        }
+                    }
+                    advanceCursor = true;
                     return hasNext;
                 } catch (SQLException e) {
                     throw new RuntimeException("Failed to walk the results");
@@ -66,6 +94,17 @@ class ResultSetList extends AbstractList<Object> {
                 return real.next();
             }
         };
+    }
+    
+    private boolean isPartOfSameParent() throws SQLException {
+        for (Map.Entry<String, Object> entry : this.sameParentCriteria.entrySet()) {
+            Object rowVal = rs.getObject(entry.getKey());
+            if (!rowVal.equals(entry.getValue())){
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     @Override

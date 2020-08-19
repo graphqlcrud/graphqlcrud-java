@@ -20,12 +20,15 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 public class SQLContext implements Closeable{
 
     private Connection connection;
+    private Statement stmt;
     private ResultSet rs;
     private String sql;
+    private FetchPlan plan;
 
     public String getSQL() {
         return sql;
@@ -54,12 +57,23 @@ public class SQLContext implements Closeable{
     public void setResultSet(ResultSet rs) {
         this.rs = rs;
     }
+    
+    public Statement getStmt() {
+        return stmt;
+    }
+
+    public void setStmt(Statement stmt) {
+        this.stmt = stmt;
+    }    
 
     @Override
     public void close() throws IOException {
-        try {
+        try {            
             if (this.rs != null) {
                 this.rs.close();
+            }
+            if (this.stmt != null) {
+                this.stmt.close();
             }
             if (this.connection != null) {
                 this.connection.close();
@@ -67,5 +81,13 @@ public class SQLContext implements Closeable{
         } catch (SQLException e) {
             throw new IOException(e);
         }
+    }
+
+    public FetchPlan getPlan() {
+        return plan;
+    }
+
+    public void setPlan(FetchPlan plan) {
+        this.plan = plan;
     }
 }

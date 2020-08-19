@@ -60,7 +60,7 @@ class SQLDataFetcherTest {
                 "  }\n" +
                 "}";
         String result1 = executeSQL(query1);
-        Assertions.assertEquals("SELECT g0.SSN FROM PUBLIC.CUSTOMER AS g0", result1);
+        Assertions.assertEquals("SELECT g0.SSN FROM PUBLIC.CUSTOMER AS g0 ORDER BY g0.SSN", result1);
 
         String query2 = "{\n" +
                 "  accounts {\n" +
@@ -68,7 +68,7 @@ class SQLDataFetcherTest {
                 "  }\n" +
                 "}";
         String result2 = executeSQL(query2);
-        Assertions.assertEquals("SELECT g0.ACCOUNT_ID FROM PUBLIC.ACCOUNT AS g0", result2);
+        Assertions.assertEquals("SELECT g0.ACCOUNT_ID FROM PUBLIC.ACCOUNT AS g0 ORDER BY g0.ACCOUNT_ID", result2);
     }
 
     @Test
@@ -79,7 +79,7 @@ class SQLDataFetcherTest {
                 "  }\n" +
                 "}";
         String result3 = executeSQL(query3);
-        Assertions.assertEquals("SELECT g0.SSN FROM PUBLIC.CUSTOMER AS g0 WHERE g0.SSN = 'CST01002'", result3);
+        Assertions.assertEquals("SELECT g0.SSN FROM PUBLIC.CUSTOMER AS g0 WHERE g0.SSN = 'CST01002' ORDER BY g0.SSN", result3);
     }
 
     @Test
@@ -95,7 +95,7 @@ class SQLDataFetcherTest {
         String result4 = executeSQL(query4);
         Assertions.assertEquals(
                 "SELECT g0.SSN, g1.ACCOUNT_ID FROM PUBLIC.CUSTOMER AS g0 "
-                + "LEFT OUTER JOIN PUBLIC.ACCOUNT AS g1 ON g0.SSN = g1.SSN",
+                + "LEFT OUTER JOIN PUBLIC.ACCOUNT AS g1 ON g0.SSN = g1.SSN ORDER BY g0.SSN, g1.ACCOUNT_ID",
                 result4);
     }
 
@@ -118,7 +118,8 @@ class SQLDataFetcherTest {
                 "SELECT g0.SSN, g1.ACCOUNT_ID, g2.PRODUCT_ID, g2.SHARES_COUNT "
                 + "FROM PUBLIC.CUSTOMER AS g0 "
                 + "LEFT OUTER JOIN PUBLIC.ACCOUNT AS g1 ON g0.SSN = g1.SSN "
-                + "LEFT OUTER JOIN PUBLIC.HOLDINGS AS g2 ON g1.ACCOUNT_ID = g2.ACCOUNT_ID",
+                + "LEFT OUTER JOIN PUBLIC.HOLDINGS AS g2 ON g1.ACCOUNT_ID = g2.ACCOUNT_ID "
+                + "ORDER BY g0.SSN, g1.ACCOUNT_ID, g2.TRANSACTION_ID",
                 result4);
     }
 

@@ -15,9 +15,9 @@
  */
 package io.graphqlcrud;
 
-import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import graphql.language.Field;
 import graphql.schema.DataFetcher;
@@ -27,12 +27,17 @@ import graphql.schema.DataFetchingEnvironment;
 public class RowFetcher implements DataFetcher<Object> {
     @Override
     public Object get(DataFetchingEnvironment environment) throws Exception {
+        SQLContext ctx = environment.getContext();
+        FetchPlan plan = ctx.getPlan();
         Object source = environment.getSource();
         if (source == null) {
             return null;
         }
+        ResultSetWrapper rs = null;
         if (source instanceof ResultSetList) {
-            source = ((ResultSetList) source).get();
+            rs = (ResultSetWrapper)((ResultSetList) source).get();
+        } else {
+            rs = (ResultSetWrapper)source;
         }
         Field f = environment.getField();
 
@@ -40,11 +45,21 @@ public class RowFetcher implements DataFetcher<Object> {
         // this is link to another table
         if (sqlDirective != null){
             if (sqlDirective.getForeignFields() != null) {
-                List<ResultSet> result = new ArrayList<>();
-                result.add((ResultSet)source);
-                return result;
+                Map<String, Object> values = new HashMap<>();                
+                if (plan != null && plan.getUniques(f.getName()) != null) {
+                    for (String col: plan.getUniques(f.getName())) {
+                        values.put(col, rs.getObject(col));
+                    }
+                }
+                // if there are no rows then return empty array
+                for (String colName : SQLDataFetcher.getPrimaryColumns(environment.getFieldDefinition())) {
+                    if (rs.getObject(colName) == null) {
+                        return Collections.emptyList();
+                    }
+                }
+                return new ResultSetList(rs, values, false);
             }
         }
-        return ((ResultSet)source).getObject(f.getName());
+        return rs.getObject(f.getName());
     }
 }
