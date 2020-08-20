@@ -22,13 +22,15 @@ import java.util.Map;
 import graphql.language.Field;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.GraphQLModifiedType;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLType;
 
 // This must be thread safe, as it will be called by multiple threads at same time
 public class RowFetcher implements DataFetcher<Object> {
     @Override
     public Object get(DataFetchingEnvironment environment) throws Exception {
         SQLContext ctx = environment.getContext();
-        FetchPlan plan = ctx.getPlan();
         Object source = environment.getSource();
         if (source == null) {
             return null;
@@ -45,14 +47,18 @@ public class RowFetcher implements DataFetcher<Object> {
         // this is link to another table
         if (sqlDirective != null){
             if (sqlDirective.getForeignFields() != null) {
-                Map<String, Object> values = new HashMap<>();                
-                if (plan != null && plan.getUniques(f.getName()) != null) {
-                    for (String col: plan.getUniques(f.getName())) {
+                Map<String, Object> values = new HashMap<>();
+                if (ctx.getKeyColumns(f.getName()) != null) {
+                    for (String col: ctx.getKeyColumns(f.getName())) {
                         values.put(col, rs.getObject(col));
                     }
                 }
                 // if there are no rows then return empty array
-                for (String colName : SQLDataFetcher.getPrimaryColumns(environment.getFieldDefinition())) {
+                GraphQLType type = environment.getFieldDefinition().getType();
+                if (type instanceof GraphQLModifiedType) {
+                    type = ((GraphQLModifiedType) type).getWrappedType();
+                }
+                for (String colName : SQLQueryBuilderVisitor.getIdentityColumns((GraphQLObjectType)type)) {
                     if (rs.getObject(colName) == null) {
                         return Collections.emptyList();
                     }

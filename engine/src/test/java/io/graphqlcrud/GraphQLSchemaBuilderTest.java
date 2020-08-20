@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
+import graphql.schema.idl.SchemaPrinter;
 import io.agroal.api.AgroalDataSource;
 import io.graphqlcrud.model.Schema;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -40,12 +41,15 @@ public class GraphQLSchemaBuilderTest {
 
     @Test
     public void testSchemaPrint() throws Exception {
-        try (Connection connection = datasource.getConnection()){
+        try (Connection connection = this.datasource.getConnection()){
             Assertions.assertNotNull(connection);
             Schema s = DatabaseSchemaBuilder.getSchema(connection, "PUBLIC");
             Assertions.assertNotNull(s);
 
             GraphQLSchema schema = GraphQLSchemaBuilder.getSchema(s);
+            SchemaPrinter sp = new SchemaPrinter();
+            System.out.println(sp.print(schema));
+
             GraphQLObjectType objectType = schema.getQueryType();
             Assertions.assertNotNull(objectType);
             Assertions.assertEquals("QueryType", objectType.getName());
@@ -74,6 +78,22 @@ public class GraphQLSchemaBuilderTest {
                 Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("STATE"));
                 Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("SSN"));
             }
+
+            GraphQLObjectType account = schema.getObjectType("ACCOUNT");
+            Assertions.assertNotNull(account);
+            Assertions.assertEquals("PUBLIC.ACCOUNT", account.getDirective("sql").getArgument("table").getValue().toString());
+            GraphQLFieldDefinition holdings = account.getFieldDefinition("holdinges");
+            Assertions.assertNotNull(holdings.getDirective("sql"));
+            Assertions.assertEquals("[ACCOUNT_ID]", holdings.getDirective("sql").getArgument("keys").getValue().toString());
+            Assertions.assertEquals("[ACCOUNT_ID]", holdings.getDirective("sql").getArgument("reference_keys").getValue().toString());
+
+            GraphQLObjectType product = schema.getObjectType("PRODUCT");
+            Assertions.assertNotNull(product);
+            Assertions.assertEquals("PUBLIC.PRODUCT", product.getDirective("sql").getArgument("table").getValue().toString());
+            holdings = product.getFieldDefinition("holdinges");
+            Assertions.assertNotNull(holdings.getDirective("sql"));
+            Assertions.assertEquals("[ID]", holdings.getDirective("sql").getArgument("keys").getValue().toString());
+            Assertions.assertEquals("[PRODUCT_ID]", holdings.getDirective("sql").getArgument("reference_keys").getValue().toString());
         }
    }
 }

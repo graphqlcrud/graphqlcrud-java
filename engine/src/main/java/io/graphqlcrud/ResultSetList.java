@@ -24,7 +24,6 @@ class ResultSetList extends AbstractList<Object> {
     private ResultSetWrapper rs;
     private Iterator<Object> itr;
     private Object current;
-    private FetchPlan plan;
     private Map<String, Object> sameParentCriteria;
     private boolean advanceCursor;
 
@@ -33,25 +32,21 @@ class ResultSetList extends AbstractList<Object> {
         this.sameParentCriteria = criteria;
         this.advanceCursor = advanceCursor;
     }
-    
-    public FetchPlan getPlan() {
-        return plan;
-    }    
 
     public Object get() {
         if (this.itr == null) {
             this.itr = iterator();
-            if (!itr.hasNext()) {
+            if (!this.itr.hasNext()) {
                 return null;
             }
-            this.current = itr.next();
+            this.current = this.itr.next();
         }
-        return current;
+        return this.current;
     }
 
     @Override
     public Object get(int index) {
-        return rs;
+        return this.rs;
     }
 
     @Override
@@ -62,28 +57,28 @@ class ResultSetList extends AbstractList<Object> {
             @Override
             public boolean hasNext() {
                 try {
-                    if (rs.isClosed()) {
+                    if (ResultSetList.this.rs.isClosed()) {
                         return false;
                     }
-                    boolean hasNext = advanceCursor ? rs.next() : true; 
+                    boolean hasNext = ResultSetList.this.advanceCursor ? ResultSetList.this.rs.next() : true;
                     if (!hasNext) {
-                        rs.close();
+                        ResultSetList.this.rs.close();
                     }
-                    
+
                     // there is a new row, is this part of same parent?
-                    if (hasNext && sameParentCriteria != null) {
+                    if (hasNext && ResultSetList.this.sameParentCriteria != null) {
                         if (isPartOfSameParent()) {
-                            advanceCursor = true;
+                            ResultSetList.this.advanceCursor = true;
                             return true;
                         } else {
-                            advanceCursor = false;
-                            // if advanceCursor controls drilling in, this one controls 
+                            ResultSetList.this.advanceCursor = false;
+                            // if advanceCursor controls drilling in, this one controls
                             // going back in nested results
-                            rs.setIgnoreNext(true);
+                            ResultSetList.this.rs.setIgnoreNext(true);
                             return false;
                         }
                     }
-                    advanceCursor = true;
+                    ResultSetList.this.advanceCursor = true;
                     return hasNext;
                 } catch (SQLException e) {
                     throw new RuntimeException("Failed to walk the results");
@@ -95,15 +90,15 @@ class ResultSetList extends AbstractList<Object> {
             }
         };
     }
-    
+
     private boolean isPartOfSameParent() throws SQLException {
         for (Map.Entry<String, Object> entry : this.sameParentCriteria.entrySet()) {
-            Object rowVal = rs.getObject(entry.getKey());
+            Object rowVal = this.rs.getObject(entry.getKey());
             if (!rowVal.equals(entry.getValue())){
                 return false;
             }
         }
-        
+
         return true;
     }
 

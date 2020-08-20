@@ -40,7 +40,7 @@ public class DatabaseSchemaBuilder {
     private final String schema;
 
     protected DatabaseSchemaBuilder(Connection connection, String schema) throws SQLException {
-        databaseMetaData = connection.getMetaData();
+        this.databaseMetaData = connection.getMetaData();
         this.schema = schema;
     }
 
@@ -50,9 +50,9 @@ public class DatabaseSchemaBuilder {
     }
 
     protected Schema buildSchema() throws SQLException {
-        Schema s = new Schema(schema);
+        Schema s = new Schema(this.schema);
         Map<String, Entity> entityMap = new TreeMap<String, Entity>();
-        try (ResultSet results = databaseMetaData.getTables(null, schema, null,
+        try (ResultSet results = this.databaseMetaData.getTables(null, this.schema, null,
                 new String[] { "TABLE", "VIEW" })) {
             while (results.next()) {
                 String tableName = results.getString("TABLE_NAME");
@@ -77,7 +77,7 @@ public class DatabaseSchemaBuilder {
         Entity entity = new Entity(tableName);
         List<String> primaryKeys = new ArrayList<>();
 
-        try (ResultSet results = databaseMetaData.getPrimaryKeys(null, schema, tableName)) {
+        try (ResultSet results = this.databaseMetaData.getPrimaryKeys(null, this.schema, tableName)) {
             LOGGER.debug("Loading primary keys for table: " + tableName);
             while (results.next()) {
                 String name = results.getString("COLUMN_NAME");
@@ -86,7 +86,7 @@ public class DatabaseSchemaBuilder {
         }
         entity.setPrimaryKeys(primaryKeys);
 
-        try (ResultSet results = databaseMetaData.getColumns(null, schema, tableName, "%")) {
+        try (ResultSet results = this.databaseMetaData.getColumns(null, this.schema, tableName, "%")) {
             LOGGER.debug("Loading columns for table: " + tableName);
             while (results.next()) {
                 String name = results.getString("COLUMN_NAME");
@@ -117,7 +117,7 @@ public class DatabaseSchemaBuilder {
     private void buildRelations(Map<String, Entity> entityMap) throws SQLException {
         for (Entity entity : entityMap.values()) {
             HashMap<String, Relation> allRelations = new HashMap<String, Relation>();
-            try (ResultSet results = databaseMetaData.getImportedKeys(null, schema, entity.getName())) {
+            try (ResultSet results = this.databaseMetaData.getImportedKeys(null, this.schema, entity.getName())) {
                 LOGGER.debug("Loading imported keys for table: " + entity.getName());
                 while (results.next()) {
                     String pktable = results.getString("PKTABLE_NAME"); // 3
@@ -149,8 +149,8 @@ public class DatabaseSchemaBuilder {
                         fkInfo.setForeignEntity(pkEntity);
                         allRelations.put(pktable, fkInfo);
                     }
-                    fkInfo.getKeyColumns().put(seqNum, fkColumn);
-                    fkInfo.getReferencedKeyColumns().put(seqNum, pkColumn);
+                    fkInfo.getKeyColumns().put(seqNum, pkColumn);
+                    fkInfo.getReferencedKeyColumns().put(seqNum, fkColumn);
 
                     if (pkEntity.isPartOfPrimaryKey(pkColumn) && fkEntity.isPartOfPrimaryKey(fkColumn)) {
                         fkInfo.setCardinality(Cardinality.ONE_TO_ONE);

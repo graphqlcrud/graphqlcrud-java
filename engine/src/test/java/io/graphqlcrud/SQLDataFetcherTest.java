@@ -103,7 +103,7 @@ class SQLDataFetcherTest {
     public void testDeepNestedQuery() throws Exception {
         String query4 = "{\n" +
           "  customers {\n" +
-          "    SSN\n" +
+          "    FIRSTNAME\n" +
           "    accounts {\n" +
           "      ACCOUNT_ID\n" +
           "      holdinges {\n" +
@@ -115,7 +115,7 @@ class SQLDataFetcherTest {
           "}";
         String result4 = executeSQL(query4);
         Assertions.assertEquals(
-                "SELECT g0.SSN, g1.ACCOUNT_ID, g2.PRODUCT_ID, g2.SHARES_COUNT "
+                "SELECT g0.SSN, g0.FIRSTNAME, g1.ACCOUNT_ID, g2.TRANSACTION_ID, g2.PRODUCT_ID, g2.SHARES_COUNT "
                 + "FROM PUBLIC.CUSTOMER AS g0 "
                 + "LEFT OUTER JOIN PUBLIC.ACCOUNT AS g1 ON g0.SSN = g1.SSN "
                 + "LEFT OUTER JOIN PUBLIC.HOLDINGS AS g2 ON g1.ACCOUNT_ID = g2.ACCOUNT_ID "

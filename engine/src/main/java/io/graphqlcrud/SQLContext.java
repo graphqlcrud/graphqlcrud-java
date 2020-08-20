@@ -21,6 +21,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
+import java.util.List;
 
 public class SQLContext implements Closeable{
 
@@ -28,10 +30,10 @@ public class SQLContext implements Closeable{
     private Statement stmt;
     private ResultSet rs;
     private String sql;
-    private FetchPlan plan;
+    private HashMap<String, List<String>> keyColumnsMap = new HashMap<>();
 
     public String getSQL() {
-        return sql;
+        return this.sql;
     }
 
     public void setSQL(String sql) {
@@ -43,7 +45,7 @@ public class SQLContext implements Closeable{
     }
 
     public Connection getConnection() {
-        return connection;
+        return this.connection;
     }
 
     public void setConnection(Connection connection) {
@@ -53,22 +55,30 @@ public class SQLContext implements Closeable{
     public ResultSet getResultSet() {
         return this.rs;
     }
-    
+
     public void setResultSet(ResultSet rs) {
         this.rs = rs;
     }
-    
+
     public Statement getStmt() {
-        return stmt;
+        return this.stmt;
     }
 
     public void setStmt(Statement stmt) {
         this.stmt = stmt;
-    }    
+    }
+
+    public void addKeyColumns(String name, List<String> columns) {
+        this.keyColumnsMap.put(name, columns);
+    }
+
+    public List<String> getKeyColumns(String name){
+        return this.keyColumnsMap.get(name);
+    }
 
     @Override
     public void close() throws IOException {
-        try {            
+        try {
             if (this.rs != null) {
                 this.rs.close();
             }
@@ -83,11 +93,5 @@ public class SQLContext implements Closeable{
         }
     }
 
-    public FetchPlan getPlan() {
-        return plan;
-    }
 
-    public void setPlan(FetchPlan plan) {
-        this.plan = plan;
-    }
 }
