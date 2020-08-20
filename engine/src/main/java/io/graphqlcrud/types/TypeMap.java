@@ -15,8 +15,11 @@
  */
 package io.graphqlcrud.types;
 
+import graphql.schema.GraphQLInputType;
 import graphql.schema.GraphQLOutputType;
 
 public interface TypeMap {
     GraphQLOutputType getAsGraphQLTypeString(int dataType);
+
+    GraphQLInputType getAsGraphQLFilterType(int dataType);
 }

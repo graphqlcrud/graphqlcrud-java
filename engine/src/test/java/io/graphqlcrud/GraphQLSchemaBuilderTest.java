@@ -59,6 +59,21 @@ public class GraphQLSchemaBuilderTest {
             Assertions.assertNotNull(accountsDef.getDirective("sql"));
             Assertions.assertEquals("[SSN]", accountsDef.getDirective("sql").getArgument("keys").getValue().toString());
             Assertions.assertEquals("[SSN]", accountsDef.getDirective("sql").getArgument("reference_keys").getValue().toString());
+
+            GraphQLFieldDefinition fieldDefinition = objectType.getFieldDefinition("customers");
+            Assertions.assertEquals("page",fieldDefinition.getArguments().get(0).getName());
+            Assertions.assertEquals("filter", fieldDefinition.getArguments().get(1).getName());
+            if(fieldDefinition.getArgument("filter").getType().toString().contains("CustomerFilterType")) {
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("APT_NUMBER"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("CITY"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("FIRSTNAME"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("LASTNAME"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("ST_ADDRESS"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("ZIPCODE"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("PHONE"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("STATE"));
+                Assertions.assertTrue(fieldDefinition.getArgument("filter").getType().getChildren().toString().contains("SSN"));
+            }
         }
-    }
+   }
 }

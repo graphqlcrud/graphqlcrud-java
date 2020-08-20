@@ -22,19 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import graphql.schema.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.teiid.language.AndOr;
-import org.teiid.language.ColumnReference;
-import org.teiid.language.Comparison;
-import org.teiid.language.Condition;
-import org.teiid.language.DerivedColumn;
-import org.teiid.language.Expression;
-import org.teiid.language.Join;
-import org.teiid.language.Literal;
-import org.teiid.language.NamedTable;
-import org.teiid.language.Select;
-import org.teiid.language.TableReference;
+import org.teiid.language.*;
 import org.teiid.language.visitor.SQLStringVisitor;
 
 import graphql.language.Argument;
@@ -45,14 +36,6 @@ import graphql.language.IntValue;
 import graphql.language.Selection;
 import graphql.language.StringValue;
 import graphql.language.Value;
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.GraphQLFieldDefinition;
-import graphql.schema.GraphQLModifiedType;
-import graphql.schema.GraphQLObjectType;
-import graphql.schema.GraphQLType;
-import graphql.schema.GraphQLTypeUtil;
-import graphql.schema.SelectedField;
 
 // This must be thread safe, as it will be called by multiple threads at same time
 // This is very simple naively written class, will require more structure here
@@ -88,12 +71,12 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
                 null, null);
 
         // the parent query like "customers" definition
-        Field rootFeild = environment.getField();
+        Field rootField = environment.getField();
         GraphQLFieldDefinition rootDefinition = environment.getFieldDefinition();
         NamedTable table = buildTable(rootDefinition, inc);
 
         // add select
-        TableReference from = buildSelect(environment, select, table, rootFeild, rootDefinition, null, inc);
+        TableReference from = buildSelect(environment, select, table, rootField, rootDefinition, null, inc);
 
         // add from
         select.getFrom().add(from);
@@ -104,7 +87,7 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
     }
 
     private TableReference buildSelect(DataFetchingEnvironment environment, Select select, TableReference left,
-            Field rootFeild, GraphQLFieldDefinition rootFieldDefinition, String fqn, AtomicInteger inc) {
+            Field rootField, GraphQLFieldDefinition rootFieldDefinition, String fqn, AtomicInteger inc) {
 
         NamedTable table = null;
         if (left instanceof NamedTable) {
@@ -121,7 +104,7 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
         }
 
         if (GraphQLTypeUtil.isScalar(rootType)) {
-            select.getDerivedColumns().add(new DerivedColumn(null, new ColumnReference(table, rootFeild.getName(), null, null)));
+            select.getDerivedColumns().add(new DerivedColumn(null, new ColumnReference(table, rootField.getName(), null, null)));
         } else if (rootType instanceof GraphQLObjectType) {
             SQLDirective sqlDirective = SQLDirective.find(((GraphQLObjectType)rootType).getDirectives());
             if (rootSqlDirective != null && rootSqlDirective.getPrimaryFields() != null) {
@@ -143,7 +126,7 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
             }
 
             // since this is object type loop through and selected fields
-            List<Selection> fields = rootFeild.getSelectionSet().getSelections();
+            List<Selection> fields = rootField.getSelectionSet().getSelections();
             for (int i = 0; i < fields.size(); i++) {
                 Field f = (Field)fields.get(i);
                 String fieldName = fqn == null ? f.getName() : fqn+"/"+f.getName();

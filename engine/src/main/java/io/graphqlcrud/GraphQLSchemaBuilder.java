@@ -18,6 +18,7 @@ package io.graphqlcrud;
 import java.util.ArrayList;
 import java.util.List;
 
+import graphql.schema.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,16 +26,7 @@ import graphql.Scalars;
 import graphql.language.OperationTypeDefinition;
 import graphql.language.SchemaDefinition;
 import graphql.language.TypeName;
-import graphql.schema.FieldCoordinates;
-import graphql.schema.GraphQLArgument;
-import graphql.schema.GraphQLCodeRegistry;
-import graphql.schema.GraphQLFieldDefinition;
-import graphql.schema.GraphQLList;
-import graphql.schema.GraphQLNonNull;
-import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLObjectType.Builder;
-import graphql.schema.GraphQLSchema;
-import graphql.schema.GraphQLTypeReference;
 import io.graphqlcrud.model.Entity;
 import io.graphqlcrud.model.Schema;
 import io.graphqlcrud.types.JdbcTypeMap;
@@ -61,9 +53,28 @@ public class GraphQLSchemaBuilder {
         GraphQLObjectType.Builder queryTypeBuilder = GraphQLObjectType.newObject();
         queryTypeBuilder.name("QueryType");
 
+        //add filters for queries
+        builder.additionalType(Filters.pageInputBuilder().build());
+        builder.additionalType(Filters.stringInputBuilder().build());
+        builder.additionalType(Filters.intInputBuilder().build());
+        builder.additionalType(Filters.idInputBuilder().build());
+        builder.additionalType(Filters.booleanInputBuilder().build());
+        builder.additionalType(Filters.floatInputBuilder().build());
+        builder.additionalType(Filters.sortDirectionEnumBuilder().build());
+        builder.additionalType(Filters.orderByInputBuilder().build());
+
+        //add FilterInputTypes
+        schema.getEntities().stream().forEach(filterEntity -> {
+            GraphQLInputObjectType.Builder  entityBuilder = GraphQLInputObjectType.newInputObject();
+            entityBuilder.name(StringUtil.capitalize(filterEntity.getName().toLowerCase()) + "FilterInput");
+            buildFilterFields(filterEntity,schema).stream().forEach(filter -> {
+                entityBuilder.field(filter.build());
+            });
+            builder.additionalType(entityBuilder.build());
+        });
+
         schema.getEntities().stream().forEach(entity -> {
             GraphQLObjectType.Builder typeBuilder = GraphQLObjectType.newObject();
-            //TODO : Model Annotations
             typeBuilder.description(entity.getDescription());
             typeBuilder.name(entity.getName());
             typeBuilder.withDirective(SQLDirective.newDirective().tablename(entity.getFullName()).build());
@@ -101,6 +112,9 @@ public class GraphQLSchemaBuilder {
             String name = StringUtil.plural(entity.getName()).toLowerCase();
             GraphQLFieldDefinition.Builder builder = GraphQLFieldDefinition.newFieldDefinition();
             builder.name(name);
+            builder.argument(GraphQLArgument.newArgument().name("page").type(GraphQLTypeReference.typeRef("PageRequest")).build());
+            builder.argument(GraphQLArgument.newArgument().name("filter").type(GraphQLTypeReference.typeRef(StringUtil.capitalize(entity.getName().toLowerCase()) + "FilterInput")).build());
+            builder.argument(GraphQLArgument.newArgument().name("orderBy").type(GraphQLTypeReference.typeRef("OrderByInput")).build());
             builder.type(GraphQLList.list(new GraphQLTypeReference(entity.getName())));
             queryTypeBuilder.field(builder.build());
             codeBuilder.dataFetcher(FieldCoordinates.coordinates("QueryType", name), DEFAULT_DATA_FETCHER_FACTORY);
@@ -165,5 +179,17 @@ public class GraphQLSchemaBuilder {
             });
         });
         return fields;
+    }
+
+    protected List<GraphQLInputObjectField.Builder> buildFilterFields(Entity filterEntity, Schema schema) {
+        ArrayList<GraphQLInputObjectField.Builder> filterFields = new ArrayList<GraphQLInputObjectField.Builder>();
+
+        filterEntity.getAttributes().stream().forEach(attr -> {
+            GraphQLInputObjectField.Builder builder = GraphQLInputObjectField.newInputObjectField();
+            builder.name(attr.getName());
+            builder.type(TYPEMAP.getAsGraphQLFilterType(attr.getType()));
+            filterFields.add(builder);
+        });
+        return filterFields;
     }
 }

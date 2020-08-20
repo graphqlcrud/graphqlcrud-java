@@ -19,7 +19,11 @@ import java.sql.Types;
 
 import graphql.Scalars;
 import graphql.scalars.ExtendedScalars;
+import graphql.schema.GraphQLInputType;
 import graphql.schema.GraphQLOutputType;
+import graphql.schema.GraphQLType;
+import graphql.schema.GraphQLTypeReference;
+import io.graphqlcrud.Filters;
 
 public class JdbcTypeMap implements TypeMap {
 
@@ -65,5 +69,41 @@ public class JdbcTypeMap implements TypeMap {
                 break;
         }
         return typeString;
+    }
+
+    @Override
+    public GraphQLInputType getAsGraphQLFilterType (int dataType) {
+        GraphQLInputType outputType;
+        switch (dataType) {
+            case Types.TINYINT:
+            case Types.INTEGER:
+            case Types.SMALLINT:
+                outputType = GraphQLTypeReference.typeRef("IntInput");
+                break;
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+                outputType = GraphQLTypeReference.typeRef("StringInput");
+                break;
+            case Types.DOUBLE:
+            case Types.FLOAT:
+            case Types.REAL:
+            case Types.NUMERIC:
+            case Types.DECIMAL:
+                outputType = GraphQLTypeReference.typeRef("FloatInput");
+                break;
+            case Types.DATE:
+            case Types.TIMESTAMP:
+            case Types.TIME:
+                outputType = GraphQLTypeReference.typeRef("StringInput");
+                break;
+            case Types.BIT:
+                outputType = GraphQLTypeReference.typeRef("BooleanInput");
+                break;
+            default:
+                outputType = GraphQLTypeReference.typeRef("StringInput");
+                break;
+        }
+        return outputType;
     }
 }
