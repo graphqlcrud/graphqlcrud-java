@@ -33,15 +33,16 @@
     <maven.compiler.target>11</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <quarkus-plugin.version>1.5.2.Final</quarkus-plugin.version>
+    <quarkus-plugin.version>1.7.0.Final</quarkus-plugin.version>
     <quarkus.platform.artifact-id>quarkus-universe-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus</quarkus.platform.group-id>
-    <quarkus.platform.version>1.5.2.Final</quarkus.platform.version>
+    <quarkus.platform.version>1.7.0.Final</quarkus.platform.version>
     <surefire-plugin.version>2.22.1</surefire-plugin.version>
     <failsafe-plugin.version>3.0.0-M3</failsafe-plugin.version>
     <version.com.graphql-java>15.0</version.com.graphql-java>
     <version.org.postgresql>42.2.14</version.org.postgresql> 
-    <version.org.teiid>15.0.0</version.org.teiid>
+    <version.org.jooq>3.13.0</version.org.jooq>
+    <version.com.h2database>1.4.200</version.com.h2database>
   </properties>
   
   <dependencyManagement>
@@ -74,9 +75,19 @@
         <version>${version.org.postgresql}</version>
       </dependency>
       <dependency>
-        <groupId>org.teiid</groupId>
-        <artifactId>teiid-api</artifactId>
-        <version>${version.org.teiid}</version>
+        <groupId>org.jooq</groupId>
+        <artifactId>jooq</artifactId>
+        <version>${version.org.jooq}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jooq</groupId>
+        <artifactId>jooq-meta</artifactId>
+        <version>${version.org.jooq}</version>
+      </dependency>
+      <dependency>
+          <groupId>com.h2database</groupId>
+          <artifactId>h2</artifactId>
+          <version>${version.com.h2database}</version>
       </dependency>      
     </dependencies>    
   </dependencyManagement>

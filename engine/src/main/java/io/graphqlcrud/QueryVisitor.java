@@ -32,6 +32,4 @@ public interface QueryVisitor {
     void endVisitRootObject(Field rootFeild, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type);
 
     void visitArgument(Field field, GraphQLFieldDefinition definition, GraphQLObjectType type, Argument arg);
-
-    void onComplete();
 }

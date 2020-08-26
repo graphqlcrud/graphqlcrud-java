@@ -18,18 +18,15 @@ package io.graphqlcrud;
 import java.sql.SQLException;
 import java.util.AbstractList;
 import java.util.Iterator;
-import java.util.Map;
 
 class ResultSetList extends AbstractList<Object> {
     private ResultSetWrapper rs;
     private Iterator<Object> itr;
     private Object current;
-    private Map<String, Object> sameParentCriteria;
     private boolean advanceCursor;
 
-    ResultSetList(ResultSetWrapper rs, Map<String, Object> criteria, boolean advanceCursor){
+    ResultSetList(ResultSetWrapper rs, boolean advanceCursor){
         this.rs = rs;
-        this.sameParentCriteria = criteria;
         this.advanceCursor = advanceCursor;
     }
 
@@ -64,20 +61,6 @@ class ResultSetList extends AbstractList<Object> {
                     if (!hasNext) {
                         ResultSetList.this.rs.close();
                     }
-
-                    // there is a new row, is this part of same parent?
-                    if (hasNext && ResultSetList.this.sameParentCriteria != null) {
-                        if (isPartOfSameParent()) {
-                            ResultSetList.this.advanceCursor = true;
-                            return true;
-                        } else {
-                            ResultSetList.this.advanceCursor = false;
-                            // if advanceCursor controls drilling in, this one controls
-                            // going back in nested results
-                            ResultSetList.this.rs.setIgnoreNext(true);
-                            return false;
-                        }
-                    }
                     ResultSetList.this.advanceCursor = true;
                     return hasNext;
                 } catch (SQLException e) {
@@ -89,17 +72,6 @@ class ResultSetList extends AbstractList<Object> {
                 return real.next();
             }
         };
-    }
-
-    private boolean isPartOfSameParent() throws SQLException {
-        for (Map.Entry<String, Object> entry : this.sameParentCriteria.entrySet()) {
-            Object rowVal = this.rs.getObject(entry.getKey());
-            if (!rowVal.equals(entry.getValue())){
-                return false;
-            }
-        }
-
-        return true;
     }
 
     @Override

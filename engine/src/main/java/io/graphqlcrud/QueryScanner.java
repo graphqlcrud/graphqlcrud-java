@@ -75,11 +75,6 @@ public class QueryScanner {
                 this.visitor.endVisitObject(field, definition, (GraphQLObjectType)type);
             }
         }
-
-        // complete the scan
-        if (root) {
-            this.visitor.onComplete();
-        }
     }
 
     private void scanArguments(Field field, GraphQLFieldDefinition definition, GraphQLType type) {

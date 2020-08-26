@@ -15,13 +15,12 @@
  */
 package io.graphqlcrud;
 
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.teiid.language.visitor.SQLStringVisitor;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
@@ -41,19 +40,19 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
 
         ResultSet rs = null;
         Connection c = ctx.getConnection();
-        CallableStatement stmt = c.prepareCall(sql);
-        boolean hasResults = stmt.execute();
+        Statement stmt = c.createStatement();
+        boolean hasResults = stmt.execute(sql);
         if (hasResults) {
             rs = stmt.getResultSet();
         }
         ctx.setResultSet(rs);
-        return new ResultSetList(new ResultSetWrapper(rs), null, true);
+        return new ResultSetList(new ResultSetWrapper(rs), true);
     }
 
     private String buildSQL(DataFetchingEnvironment environment) {
         SQLQueryBuilderVisitor visitor = new SQLQueryBuilderVisitor(environment.getContext());
         QueryScanner scanner = new QueryScanner(environment, visitor);
         scanner.scan(environment.getField(), environment.getFieldDefinition(), null, true);
-        return SQLStringVisitor.getSQLString(visitor.getSelect());
+        return visitor.getSQL();
     }
 }

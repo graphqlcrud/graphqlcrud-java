@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLSchema;
-import graphql.schema.idl.SchemaPrinter;
 import io.agroal.api.AgroalDataSource;
 import io.graphqlcrud.model.Schema;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -47,8 +46,8 @@ public class GraphQLSchemaBuilderTest {
             Assertions.assertNotNull(s);
 
             GraphQLSchema schema = GraphQLSchemaBuilder.getSchema(s);
-            SchemaPrinter sp = new SchemaPrinter();
-            System.out.println(sp.print(schema));
+//            SchemaPrinter sp = new SchemaPrinter();
+//            System.out.println(sp.print(schema));
 
             GraphQLObjectType objectType = schema.getQueryType();
             Assertions.assertNotNull(objectType);
