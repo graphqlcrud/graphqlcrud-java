@@ -66,9 +66,13 @@ public class GraphQLSchemaBuilder {
         //add FilterInputTypes
         schema.getEntities().stream().forEach(filterEntity -> {
             GraphQLInputObjectType.Builder  entityBuilder = GraphQLInputObjectType.newInputObject();
-            entityBuilder.name(StringUtil.capitalize(filterEntity.getName().toLowerCase()) + "FilterInput");
+            String filterName = StringUtil.capitalize(filterEntity.getName().toLowerCase()) + "FilterInput";
+            entityBuilder.name(filterName);
             buildFilterFields(filterEntity,schema).stream().forEach(filter -> {
                 entityBuilder.field(filter.build());
+                entityBuilder.field(GraphQLInputObjectField.newInputObjectField().name("not").type(GraphQLTypeReference.typeRef(filterName)));
+                entityBuilder.field(GraphQLInputObjectField.newInputObjectField().name("and").type(GraphQLList.list(GraphQLTypeReference.typeRef(filterName))));
+                entityBuilder.field(GraphQLInputObjectField.newInputObjectField().name("or").type(GraphQLList.list(GraphQLTypeReference.typeRef(filterName))));
             });
             builder.additionalType(entityBuilder.build());
         });
@@ -112,9 +116,6 @@ public class GraphQLSchemaBuilder {
             String name = StringUtil.plural(entity.getName()).toLowerCase();
             GraphQLFieldDefinition.Builder builder = GraphQLFieldDefinition.newFieldDefinition();
             builder.name(name);
-            builder.argument(GraphQLArgument.newArgument().name("page").type(GraphQLTypeReference.typeRef("PageRequest")).build());
-            builder.argument(GraphQLArgument.newArgument().name("filter").type(GraphQLTypeReference.typeRef(StringUtil.capitalize(entity.getName().toLowerCase()) + "FilterInput")).build());
-            builder.argument(GraphQLArgument.newArgument().name("orderBy").type(GraphQLTypeReference.typeRef("OrderByInput")).build());
             builder.type(GraphQLList.list(new GraphQLTypeReference(entity.getName())));
             queryTypeBuilder.field(builder.build());
             codeBuilder.dataFetcher(FieldCoordinates.coordinates("QueryType", name), DEFAULT_DATA_FETCHER_FACTORY);
@@ -165,6 +166,9 @@ public class GraphQLSchemaBuilder {
                 if (relation.getForeignEntity().getName().equals(entity.getName())) {
                     GraphQLFieldDefinition.Builder fieldBuilder = GraphQLFieldDefinition.newFieldDefinition();
                     fieldBuilder.name(relation.getName());
+                    fieldBuilder.argument(GraphQLArgument.newArgument().name("page").type(GraphQLTypeReference.typeRef("PageRequest")).build());
+                    fieldBuilder.argument(GraphQLArgument.newArgument().name("filter").type(GraphQLTypeReference.typeRef(StringUtil.capitalize(e.getName().toLowerCase()) + "FilterInput")).build());
+                    fieldBuilder.argument(GraphQLArgument.newArgument().name("orderBy").type(GraphQLTypeReference.typeRef("OrderByInput")).build());
                     fieldBuilder.withDirective(SQLDirective.newDirective()
                             .primaryFields(new ArrayList<String>(relation.getKeyColumns().values()))
                             .foreignFields(new ArrayList<String>(relation.getReferencedKeyColumns().values())).build());
