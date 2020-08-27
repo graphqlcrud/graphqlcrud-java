@@ -16,9 +16,9 @@
 package io.graphqlcrud;
 
 import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.jsonArray;
 import static org.jooq.impl.DSL.jsonEntry;
 import static org.jooq.impl.DSL.jsonObject;
+import static org.jooq.impl.DSL.jsonbArrayAgg;
 import static org.jooq.impl.DSL.name;
 import static org.jooq.impl.DSL.table;
 import static org.jooq.impl.DSL.val;
@@ -73,7 +73,7 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
 
     public SQLQueryBuilderVisitor(SQLContext ctx) {
         this.ctx = ctx;
-        this.create = DSL.using(ctx.getConnection(), SQLDialect.DEFAULT);
+        this.create = DSL.using(SQLDialect.valueOf(ctx.getDialect()));
     }
 
     @Override
@@ -146,8 +146,8 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
         VistorContext vctx = this.stack.pop();
 
         // add orderby
-        List<String> identityColumns = getIdentityColumns(type);
-        addOrderBy(vctx, identityColumns);
+        //List<String> identityColumns = getIdentityColumns(type);
+        //addOrderBy(vctx, identityColumns);
 
         // add where
         if (vctx.condition != null) {
@@ -160,7 +160,8 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
             list.add(jsonEntry(val(fieldName(entry.getValue()), String.class),
                     vctx.selectedColumns.get(entry.getKey())));
         }
-        org.jooq.Field<?> json = jsonArray(vctx.selectClause.select(jsonObject(list)).asField());
+
+        org.jooq.Field<?> json = vctx.selectClause.select(jsonbArrayAgg(jsonObject(list))).asField();
 
         // add the above as a field to parent query
         this.stack.peek().selectedColumns.put(field.getName(), json);

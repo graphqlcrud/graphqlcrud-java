@@ -1,21 +1,42 @@
 # graphqlcrud-java
 
-GraphQLCRUD Java automates schema generation and integrates with GraphQL CRUD capabilities offered by https://graphqlcrud.org spec. 
+This is framework built in Java to build GraphQLCRUD based API to a provided database. You simply bring existing your database and its data, and use the framework to build simple application using the given template or embed into your Java application to expose the GraphQL API over your relational database.
+
+The GraphQLCrud specification is defined at https://graphqlcrud.org specification. 
+
+## Build the Application
+To build the application using maven run
+
+```
+mvn clean package
+```
 
 ## Running the application 
 
-You can run your application in dev mode that enables live coding using:
+The default application requires a Postgresql database. If you do not have one, you start a docker container for same by executing 
+
 ```
-mvn clean install
+docker pull postgres
+
+docker run -p 5432:5432 --name sampledb -e POSTGRES_DB=sampledb \
+  -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password \
+  -d postgres -c log_statement=all
 ```
 
-## Packaging and running the application
+You can run your application in dev mode that enables live coding, switch into the `app` directory and run
 
-The application can be packaged using `./mvnw package`.
+```
+../mvnw quarkus:dev
+```
 
-It produces the `graphqlcrud-java-1.0.0-SNAPSHOT-runner.jar` file in the `/target` directory.
+> ** NOTE: **
+The sample application is designed to load a sample schema to work with, if you bring your own database make sure to disable update of the schema
 
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/lib` directory.
+once the application starts, using the browser goto URL [http://localhost:8080](http://localhost:8080)
 
-The application is now runnable using `java -jar target/graphqlcrud-java-1.0.0-SNAPSHOT-runner.jar`.
+
+to run in non development mode:
+
+The application is now runnable using `java -jar app/target/graphqlcrud-java-1.0.0-SNAPSHOT-runner.jar`.
+
 

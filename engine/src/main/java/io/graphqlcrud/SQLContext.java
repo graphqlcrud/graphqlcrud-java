@@ -21,8 +21,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashMap;
-import java.util.List;
 
 public class SQLContext implements Closeable{
 
@@ -30,7 +28,7 @@ public class SQLContext implements Closeable{
     private Statement stmt;
     private ResultSet rs;
     private String sql;
-    private HashMap<String, List<String>> keyColumnsMap = new HashMap<>();
+    private String dialect;
 
     public String getSQL() {
         return this.sql;
@@ -68,12 +66,12 @@ public class SQLContext implements Closeable{
         this.stmt = stmt;
     }
 
-    public void addKeyColumns(String name, List<String> columns) {
-        this.keyColumnsMap.put(name, columns);
+    public String getDialect() {
+        return this.dialect;
     }
 
-    public List<String> getKeyColumns(String name){
-        return this.keyColumnsMap.get(name);
+    public void setDialect(String dialect) {
+        this.dialect = dialect;
     }
 
     @Override
@@ -92,6 +90,4 @@ public class SQLContext implements Closeable{
             throw new IOException(e);
         }
     }
-
-
 }

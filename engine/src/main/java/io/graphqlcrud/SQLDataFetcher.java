@@ -45,6 +45,7 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
         if (hasResults) {
             rs = stmt.getResultSet();
         }
+        ctx.setStmt(stmt);
         ctx.setResultSet(rs);
         return new ResultSetList(new ResultSetWrapper(rs), true);
     }

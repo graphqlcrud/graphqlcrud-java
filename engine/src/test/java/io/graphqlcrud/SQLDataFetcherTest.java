@@ -66,8 +66,8 @@ class SQLDataFetcherTest {
                 "}";
         String result1 = executeSQL(query1);
         String expected =
-                "select \n"
-                + "  \"g0\".\"SSN\" \"SSN\", \n"
+                "select\n"
+                + "  \"g0\".\"SSN\" \"SSN\",\n"
                 + "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "order by \"g0\".\"SSN\"";
@@ -111,14 +111,13 @@ class SQLDataFetcherTest {
           "  }\n" +
           "}";
         String result4 = executeSQL(query4);
-        String expected = "select \n" +
-                "  \"g0\".\"SSN\" \"SSN\", \n" +
-                "  json_array((\n" +
-                "    select json_object(key 'id' value \"g1\".\"ACCOUNT_ID\")\n" +
+        String expected = "select\n" +
+                "  \"g0\".\"SSN\" \"SSN\",\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(key 'id' value \"g1\".\"ACCOUNT_ID\"))\n" +
                 "    from PUBLIC.ACCOUNT \"g1\"\n" +
                 "    where \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
-                "    order by \"g1\".\"ACCOUNT_ID\"\n" +
-                "  )) \"accounts\"\n" +
+                "  ) \"accounts\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "order by \"g0\".\"SSN\"";
         Assertions.assertEquals(expected, result4);
@@ -139,22 +138,21 @@ class SQLDataFetcherTest {
           "  }\n" +
           "}";
         String result4 = executeSQL(query4);
-        String expected = "select \n" +
-                "  \"g0\".\"SSN\" \"SSN\", \n" +
-                "  json_array((\n" +
-                "    select json_object(\n" +
-                "      key 'CITY' value \"g1\".\"CITY\", \n" +
+        String expected = "select\n" +
+                "  \"g0\".\"SSN\" \"SSN\",\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(\n" +
+                "      key 'CITY' value \"g1\".\"CITY\",\n" +
                 "      key 'STATE' value \"g1\".\"STATE\"\n" +
-                "    )\n" +
+                "    ))\n" +
                 "    from PUBLIC.ADDRESS \"g1\"\n" +
                 "    where \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
-                "  )) \"addreses\", \n" +
-                "  json_array((\n" +
-                "    select json_object(key 'id' value \"g2\".\"ACCOUNT_ID\")\n" +
+                "  ) \"addreses\",\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(key 'id' value \"g2\".\"ACCOUNT_ID\"))\n" +
                 "    from PUBLIC.ACCOUNT \"g2\"\n" +
                 "    where \"g0\".\"SSN\" = \"g2\".\"SSN\"\n" +
-                "    order by \"g2\".\"ACCOUNT_ID\"\n" +
-                "  )) \"accounts\"\n" +
+                "  ) \"accounts\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "order by \"g0\".\"SSN\"";
         Assertions.assertEquals(expected, result4);
@@ -175,25 +173,23 @@ class SQLDataFetcherTest {
           "  }\n" +
           "}";
         String result4 = executeSQL(query4);
-        String expected = "select \n" +
-                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\", \n" +
-                "  json_array((\n" +
-                "    select json_object(\n" +
-                "      key 'id' value \"g1\".\"ACCOUNT_ID\", \n" +
-                "      key 'holdinges' value json_array((\n" +
-                "        select json_object(\n" +
-                "          key 'id' value \"g2\".\"PRODUCT_ID\", \n" +
+        String expected = "select\n" +
+                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\",\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(\n" +
+                "      key 'id' value \"g1\".\"ACCOUNT_ID\",\n" +
+                "      key 'holdinges' value (\n" +
+                "        select json_arrayagg(json_object(\n" +
+                "          key 'id' value \"g2\".\"PRODUCT_ID\",\n" +
                 "          key 'SHARES_COUNT' value \"g2\".\"SHARES_COUNT\"\n" +
-                "        )\n" +
+                "        ))\n" +
                 "        from PUBLIC.HOLDINGS \"g2\"\n" +
                 "        where \"g1\".\"ACCOUNT_ID\" = \"g2\".\"ACCOUNT_ID\"\n" +
-                "        order by \"g2\".\"TRANSACTION_ID\"\n" +
-                "      ))\n" +
-                "    )\n" +
+                "      )\n" +
+                "    ))\n" +
                 "    from PUBLIC.ACCOUNT \"g1\"\n" +
                 "    where \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
-                "    order by \"g1\".\"ACCOUNT_ID\"\n" +
-                "  )) \"accounts\"\n" +
+                "  ) \"accounts\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "order by \"g0\".\"SSN\"";
         Assertions.assertEquals(expected,result4);
@@ -207,6 +203,7 @@ class SQLDataFetcherTest {
 
         try (SQLContext ctx = new SQLContext(this.datasource.getConnection())) {
             executionInput.context(ctx);
+            ctx.setDialect("DEFAULT");
 
             GraphQL graphQL = GraphQL
                     .newGraphQL(this.graphQLSchema)

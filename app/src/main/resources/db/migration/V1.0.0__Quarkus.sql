@@ -48,7 +48,7 @@ CREATE TABLE  PRODUCT (
 
 CREATE TABLE  HOLDINGS
 (
-   TRANSACTION_ID integer auto_increment,
+   TRANSACTION_ID serial,
    ACCOUNT_ID integer,
    PRODUCT_ID integer,
    PURCHASE_DATE timestamp,
