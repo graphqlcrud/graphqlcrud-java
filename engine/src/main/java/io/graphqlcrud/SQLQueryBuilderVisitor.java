@@ -92,7 +92,7 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
         }
     }
 
-    private String fieldName(Field field) {
+    static String fieldName(Field field) {
         if (field.getAlias() != null) {
             return field.getAlias();
         }

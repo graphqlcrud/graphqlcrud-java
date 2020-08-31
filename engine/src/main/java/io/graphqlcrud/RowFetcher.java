@@ -41,6 +41,7 @@ public class RowFetcher implements DataFetcher<Object> {
             rs = (ResultSetWrapper)source;
         }
         Field f = environment.getField();
+        String colName = SQLQueryBuilderVisitor.fieldName(f);
 
         SQLDirective sqlDirective = SQLDirective.find(environment.getFieldDefinition().getDirectives());
         // this is link to another table
@@ -51,7 +52,7 @@ public class RowFetcher implements DataFetcher<Object> {
         if (rs != null) {
             return rs.getObject(f.getName());
         } else {
-            return ((Map<?,?>)source).get(f.getName());
+            return ((Map<?,?>)source).get(colName);
         }
     }
 }
