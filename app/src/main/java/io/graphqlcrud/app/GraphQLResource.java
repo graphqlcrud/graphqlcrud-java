@@ -28,6 +28,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
@@ -44,20 +46,22 @@ import io.graphqlcrud.model.Schema;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class GraphQLResource {
+    private static final Logger LOGGER = LoggerFactory.getLogger(GraphQLResource.class);
 
     @Inject
     private AgroalDataSource datasource;
 
     private GraphQLSchema schema;
 
-    @ConfigProperty(name = "quarkus.datasource.schema")
+    @ConfigProperty(name = "graphqlcrud.datasource.schema")
     private String dbSchemaName;
+
+    @ConfigProperty(name = "graphqlcrud.datasource.dialect")
+    private String dialect;
 
     @POST
     public Map<String, Object> graphql(String query) throws Exception {
         GraphQLSchema schema = buildSchema();
-        SchemaPrinter sp = new SchemaPrinter();
-        System.out.println(sp.print(schema));
 
         QueryParameters qp = QueryParameters.from(query);
 
@@ -68,6 +72,7 @@ public class GraphQLResource {
 
         // pass the datasource around
         try(SQLContext ctx = new SQLContext(this.datasource.getConnection())){
+            ctx.setDialect(this.dialect);
             executionInput.context(ctx);
 
             GraphQL graphQL = GraphQL
@@ -85,6 +90,8 @@ public class GraphQLResource {
             try(Connection conn = this.datasource.getConnection()){
                 Schema dbSchema = DatabaseSchemaBuilder.getSchema(conn, this.dbSchemaName);
                this.schema = GraphQLSchemaBuilder.getSchema(dbSchema);
+               SchemaPrinter sp = new SchemaPrinter();
+               LOGGER.info(sp.print(this.schema));
             }
         }
         return this.schema;

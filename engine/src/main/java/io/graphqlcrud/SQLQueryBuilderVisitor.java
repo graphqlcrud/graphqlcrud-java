@@ -15,24 +15,29 @@
  */
 package io.graphqlcrud;
 
+import static org.jooq.impl.DSL.field;
+import static org.jooq.impl.DSL.jsonEntry;
+import static org.jooq.impl.DSL.jsonObject;
+import static org.jooq.impl.DSL.jsonbArrayAgg;
+import static org.jooq.impl.DSL.name;
+import static org.jooq.impl.DSL.table;
+import static org.jooq.impl.DSL.val;
+
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.teiid.language.AndOr;
-import org.teiid.language.ColumnReference;
-import org.teiid.language.Comparison;
-import org.teiid.language.Condition;
-import org.teiid.language.DerivedColumn;
-import org.teiid.language.Expression;
-import org.teiid.language.Join;
-import org.teiid.language.Literal;
-import org.teiid.language.NamedTable;
-import org.teiid.language.OrderBy;
-import org.teiid.language.Select;
-import org.teiid.language.SortSpecification;
-import org.teiid.language.TableReference;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.JSONEntry;
+import org.jooq.Record;
+import org.jooq.SQLDialect;
+import org.jooq.SelectSelectStep;
+import org.jooq.Table;
+import org.jooq.impl.DSL;
 
 import graphql.language.Argument;
 import graphql.language.BooleanValue;
@@ -53,73 +58,122 @@ import graphql.schema.GraphQLTypeUtil;
 public class SQLQueryBuilderVisitor implements QueryVisitor{
 
     protected AtomicInteger inc = new AtomicInteger(0);
-    protected Select select = new Select(new ArrayList<DerivedColumn>(), false, new ArrayList<TableReference>(), null,
-            null, null, new OrderBy(new ArrayList<SortSpecification>()));
-    protected TableReference from;
-    protected Condition condition = null;
     protected SQLContext ctx;
-    private Stack<NamedTable> tableStack = new Stack<>();
-    private Stack<List<String>> identityColumnsStack = new Stack<>();
+    protected DSLContext create = null;
+
+    private static class VistorContext {
+        String alias;
+        SelectSelectStep<Record> selectClause;
+        Map<String, org.jooq.Field<?>> selectedColumns = new LinkedHashMap<>();
+        Map<String, Field> selectedFields = new LinkedHashMap<>();
+        org.jooq.Condition condition;
+    }
+
+    private Stack<VistorContext> stack = new Stack<>();
 
     public SQLQueryBuilderVisitor(SQLContext ctx) {
         this.ctx = ctx;
+        this.create = DSL.using(SQLDialect.valueOf(ctx.getDialect()));
     }
 
     @Override
     public void visitScalar(Field field, GraphQLFieldDefinition definition, GraphQLType type) {
-        NamedTable currentTable = this.tableStack.peek();
+        VistorContext vctx = this.stack.peek();
         boolean found = false;
-        for (DerivedColumn col: this.select.getDerivedColumns()) {
-            // when computed fields are supported this will be an issue like UPPER(foo)
-            ColumnReference column = (ColumnReference)col.getExpression();
-            if (column.getName().equals(field.getName())) {
+        for (String column: vctx.selectedColumns.keySet()) {
+            if (column.equals(field.getName())) {
                 found = true;
                 break;
             }
         }
         if (!found) {
-            this.select.getDerivedColumns()
-                    .add(new DerivedColumn(null, new ColumnReference(currentTable, field.getName(), null, null)));
+            vctx.selectedColumns.put(field.getName(), field(name(vctx.alias, field.getName())));
+            vctx.selectedFields.put(field.getName(), field);
         }
+    }
+
+    private String fieldName(Field field) {
+        if (field.getAlias() != null) {
+            return field.getAlias();
+        }
+        return field.getName();
     }
 
     @Override
     public void startVisitObject(Field field, GraphQLFieldDefinition definition, GraphQLObjectType type) {
         SQLDirective sqlDirective = SQLDirective.find(definition.getDirectives());
-        NamedTable left = this.tableStack.peek();
+        VistorContext vctx = this.stack.peek();
+        String aliasLeft = vctx.alias;
+
+        // add current object field as selected
+        vctx.selectedFields.put(field.getName(), field);
 
         if (sqlDirective != null && sqlDirective.getPrimaryFields() != null) {
-            NamedTable right = buildTable(definition, this.inc);
+            String aliasRight = alias(this.inc.getAndIncrement());
+            Table<Record> right = buildTable(definition, aliasRight);
 
-            // the criteria to check to make sure results under same parent
-            this.ctx.addKeyColumns(definition.getName(), this.identityColumnsStack.peek());
+            SelectSelectStep<Record> select = this.create.select();
 
-            // Add default sorts for this table, so that we know the predictive order of the results
-            List<String> sortNames = buildSortBy(type, right);
+            // add from
+            select.from(right);
 
-            // build Join clause
-            Condition c = null;
+            // build where clause based on join
+            Condition where = null;
             for (int key = 0; key < sqlDirective.getPrimaryFields().size(); key++) {
-                Comparison comp = new Comparison(
-                        new ColumnReference(left, sqlDirective.getPrimaryFields().get(key), null, null),
-                        new ColumnReference(right, sqlDirective.getForeignFields().get(key), null, null),
-                        Comparison.Operator.EQ);
+                Condition cond = field(name(aliasLeft, sqlDirective.getPrimaryFields().get(key)))
+                        .eq(field(name(aliasRight, sqlDirective.getForeignFields().get(key))));
                 if (key == 0) {
-                    c = comp;
+                    where = cond;
                 } else {
-                    c = new AndOr(c, comp, AndOr.Operator.AND);
+                    where = where.and(cond);
                 }
             }
-            this.from = new Join(this.from, right, Join.JoinType.LEFT_OUTER_JOIN, c);
-            this.tableStack.push(right);
-            this.identityColumnsStack.push(sortNames);
+            select.where(where);
+
+            // next level deep as context
+            vctx = new VistorContext();
+            vctx.alias = aliasRight;
+            vctx.selectClause = select;
+
+            this.stack.push(vctx);
+        } else {
+            throw new RuntimeException("@sql directive missing on " + field.getName());
         }
     }
 
     @Override
-    public void endVisitObject(Field rootFeild, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type) {
-        this.tableStack.pop();
-        this.identityColumnsStack.pop();
+    public void endVisitObject(Field field, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type) {
+        VistorContext vctx = this.stack.pop();
+
+        // add orderby
+        //List<String> identityColumns = getIdentityColumns(type);
+        //addOrderBy(vctx, identityColumns);
+
+        // add where
+        if (vctx.condition != null) {
+            vctx.selectClause.where(vctx.condition);
+        }
+
+        // build the nested json object
+        List<JSONEntry<?>> list = new ArrayList<>();
+        for (Map.Entry<String, Field> entry: vctx.selectedFields.entrySet()) {
+            list.add(jsonEntry(val(fieldName(entry.getValue()), String.class),
+                    vctx.selectedColumns.get(entry.getKey())));
+        }
+
+        org.jooq.Field<?> json = vctx.selectClause.select(jsonbArrayAgg(jsonObject(list))).asField();
+
+        // add the above as a field to parent query
+        this.stack.peek().selectedColumns.put(field.getName(), json);
+    }
+
+    private void addOrderBy(VistorContext vctx, List<String> identityColumns) {
+        List<org.jooq.Field<?>> orderby = new ArrayList<>();
+        identityColumns.stream().forEach(col -> {
+            org.jooq.Field<?> f = field(name(vctx.alias, col));
+            orderby.add(f);
+        });
+        vctx.selectClause.orderBy(orderby);
     }
 
     @Override
@@ -128,34 +182,41 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
         if (sqlDirective == null) {
             throw new RuntimeException("No SQL Directive found on field " + rootField.getName());
         }
-        NamedTable table = new NamedTable(sqlDirective.getTableName(), alias(this.inc.getAndIncrement()), null);
-        this.from = table;
 
-        List<String> sortNames = buildSortBy(type, table);
+        String alias = alias(this.inc.getAndIncrement());
+        Table<Record> table = table(sqlDirective.getTableName()).as(alias);
+
+        SelectSelectStep<Record> select = this.create.select();
+
+        // add from
+        select.from(table);
 
         // put the current table on stack
-        this.tableStack.push(table);
-        this.identityColumnsStack.push(sortNames);
-    }
+        VistorContext vctx = new VistorContext();
+        vctx.alias = alias;
+        vctx.selectClause = select;
 
-    private List<String> buildSortBy(GraphQLObjectType type, NamedTable table) {
-        // by default add identity columns as default sort columns
-        List<String> sortNames = getIdentityColumns(type);
-        sortNames.stream().forEach(name -> {
-            ColumnReference col = new ColumnReference(table, name, null, null);
-            this.select.getOrderBy().getSortSpecifications().add(new SortSpecification(SortSpecification.Ordering.ASC, col));
-
-            // make sure above columns are part of the select
-            this.select.getDerivedColumns()
-                .add(new DerivedColumn(null, new ColumnReference(table, name, null, null)));
-        });
-        return sortNames;
+        this.stack.push(vctx);
     }
 
     @Override
     public void endVisitRootObject(Field rootFeild, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type) {
-        this.tableStack.pop();
-        this.identityColumnsStack.pop();
+        VistorContext vctx = this.stack.peek();
+
+        // add orderby
+        List<String> identityColumns = getIdentityColumns(type);
+        addOrderBy(vctx, identityColumns);
+
+        // add where
+        if (vctx.condition != null) {
+            vctx.selectClause.where(vctx.condition);
+        }
+
+        List<org.jooq.Field<?>> projected = new ArrayList<>();
+        vctx.selectedColumns.forEach((k,v) -> {
+            projected.add(v.as(fieldName(vctx.selectedFields.get(k))));
+        });
+        vctx.selectClause.select(projected);
     }
 
     private String alias(int i) {
@@ -178,7 +239,7 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
         return names;
     }
 
-    private NamedTable buildTable(GraphQLFieldDefinition definition, AtomicInteger inc) {
+    private Table<Record> buildTable(GraphQLFieldDefinition definition, String alias) {
         SQLDirective parentDirective = null;
         if (definition.getType() instanceof GraphQLModifiedType) {
             GraphQLObjectType type = (GraphQLObjectType)((GraphQLModifiedType)definition.getType()).getWrappedType();
@@ -189,42 +250,38 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
         }
 
         // Build the main table
-        NamedTable table = new NamedTable(parentDirective.getTableName(), alias(inc.getAndIncrement()), null);
+        Table<Record> table = table(parentDirective.getTableName()).as(alias);
         return table;
     }
 
-    public Select getSelect() {
-        return this.select;
+    public String getSQL() {
+        VistorContext vctx = this.stack.peek();
+        return vctx.selectClause.toString();
     }
 
     @Override
     public void visitArgument(Field field, GraphQLFieldDefinition definition, GraphQLObjectType type, Argument arg) {
-        NamedTable currentTable = this.tableStack.peek();
-        Expression left = new ColumnReference(currentTable, arg.getName(), null, null);
-        Expression right = null;
+        VistorContext vctx = this.stack.peek();
+
+        org.jooq.Field<Object> left = field(name(vctx.alias, arg.getName()));
+
         Value<?> v = arg.getValue();
+        Condition c = null;
         if (v instanceof StringValue) {
-            right  = new Literal(((StringValue) v).getValue(), String.class);
+            c = left.eq(((StringValue)v).getValue());
         } else if (v instanceof BooleanValue) {
-            right  = new Literal(((BooleanValue) v).isValue(), Boolean.class);
+            c = left.eq(((BooleanValue)v).isValue());
         } else if (v instanceof IntValue) {
-            right  = new Literal(((IntValue) v).getValue(), Integer.class);
+            c = left.eq(((IntValue)v).getValue());
         } else if (v instanceof FloatValue) {
-            right  = new Literal(((FloatValue) v).getValue(), Float.class);
+            c = left.eq(((FloatValue)v).getValue());
         }
-        Comparison compare = new Comparison(left, right, Comparison.Operator.EQ);
-        if (this.condition ==  null) {
-            this.condition = compare;
+
+        if (vctx.condition ==  null) {
+            vctx.condition = c;
         } else {
-            this.condition = new AndOr(this.condition, compare, AndOr.Operator.AND);
+            vctx.condition = vctx.condition.and(c);
         }
     }
 
-    @Override
-    public void onComplete() {
-        this.select.getFrom().add(this.from);
-        if (this.condition != null) {
-            this.select.setWhere(this.condition);
-        }
-    }
 }

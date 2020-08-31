@@ -15,22 +15,21 @@
  */
 package io.graphqlcrud;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import graphql.language.Field;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.GraphQLModifiedType;
-import graphql.schema.GraphQLObjectType;
-import graphql.schema.GraphQLType;
 
 // This must be thread safe, as it will be called by multiple threads at same time
 public class RowFetcher implements DataFetcher<Object> {
+    ObjectMapper mapper = new ObjectMapper();
+
     @Override
     public Object get(DataFetchingEnvironment environment) throws Exception {
-        SQLContext ctx = environment.getContext();
         Object source = environment.getSource();
         if (source == null) {
             return null;
@@ -38,34 +37,21 @@ public class RowFetcher implements DataFetcher<Object> {
         ResultSetWrapper rs = null;
         if (source instanceof ResultSetList) {
             rs = (ResultSetWrapper)((ResultSetList) source).get();
-        } else {
+        } else if (source instanceof ResultSetWrapper){
             rs = (ResultSetWrapper)source;
         }
         Field f = environment.getField();
 
         SQLDirective sqlDirective = SQLDirective.find(environment.getFieldDefinition().getDirectives());
         // this is link to another table
-        if (sqlDirective != null){
-            if (sqlDirective.getForeignFields() != null) {
-                Map<String, Object> values = new HashMap<>();
-                if (ctx.getKeyColumns(f.getName()) != null) {
-                    for (String col: ctx.getKeyColumns(f.getName())) {
-                        values.put(col, rs.getObject(col));
-                    }
-                }
-                // if there are no rows then return empty array
-                GraphQLType type = environment.getFieldDefinition().getType();
-                if (type instanceof GraphQLModifiedType) {
-                    type = ((GraphQLModifiedType) type).getWrappedType();
-                }
-                for (String colName : SQLQueryBuilderVisitor.getIdentityColumns((GraphQLObjectType)type)) {
-                    if (rs.getObject(colName) == null) {
-                        return Collections.emptyList();
-                    }
-                }
-                return new ResultSetList(rs, values, false);
-            }
+        if (sqlDirective != null && rs != null){
+            List<?> node = this.mapper.readValue(rs.getBytes(f.getName()), List.class);
+            return node;
         }
-        return rs.getObject(f.getName());
+        if (rs != null) {
+            return rs.getObject(f.getName());
+        } else {
+            return ((Map<?,?>)source).get(f.getName());
+        }
     }
 }
