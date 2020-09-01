@@ -117,6 +117,45 @@ public class DatabaseSchemaBuilder {
     private void buildRelations(Map<String, Entity> entityMap) throws SQLException {
         for (Entity entity : entityMap.values()) {
             HashMap<String, Relation> allRelations = new HashMap<String, Relation>();
+
+            try (ResultSet resultSet = this.databaseMetaData.getExportedKeys(null,this.schema,entity.getName())) {
+                LOGGER.debug("Loading exported keys for table: " + entity.getName());
+                while (resultSet.next()) {
+                    String pkTable = resultSet.getString("PKTABLE_NAME");
+                    String pkColumn = resultSet.getString("PKCOLUMN_NAME");
+                    String fkTable = resultSet.getString("FKTABLE_NAME");
+                    String fkColumn = resultSet.getString("FKCOLUMN_NAME");
+                    short seqNumber = safeGetShort(resultSet,"KEY_SEQ");
+                    Entity pkEntity = entityMap.get(pkTable);
+                    if (pkEntity == null) {
+                        continue;
+                    }
+
+                    Entity fkEntity = entityMap.get(fkTable);
+                    if (fkEntity == null) {
+                        continue;
+                    }
+
+                    Relation pkInfo = allRelations.get(fkTable);
+                    if (pkInfo == null) {
+                        // make name of the relationship more meaningful
+                        pkInfo = new Relation(pkTable.toLowerCase());
+                        pkInfo.setForeignEntity(fkEntity);
+                        allRelations.put(fkTable, pkInfo);
+                    }
+                    pkInfo.getKeyColumns().put(seqNumber, fkColumn);
+                    pkInfo.getReferencedKeyColumns().put(seqNumber, pkColumn);
+                    pkInfo.setExportedKey(true);
+
+                    if (pkEntity.isPartOfPrimaryKey(pkColumn) && fkEntity.isPartOfPrimaryKey(fkColumn)) {
+                        pkInfo.setCardinality(Cardinality.ONE_TO_ONE);
+                    } else {
+                        pkInfo.setNullable(fkEntity.getAttribute(fkColumn).isNullable());
+                        pkInfo.setCardinality(Cardinality.ONE_TO_MANY);
+                    }
+                }
+            }
+
             try (ResultSet results = this.databaseMetaData.getImportedKeys(null, this.schema, entity.getName())) {
                 LOGGER.debug("Loading imported keys for table: " + entity.getName());
                 while (results.next()) {
@@ -125,7 +164,6 @@ public class DatabaseSchemaBuilder {
                     String fktable = results.getString("FKTABLE_NAME"); // 7
                     String fkColumn = results.getString("FKCOLUMN_NAME"); // 8
                     short seqNum = safeGetShort(results, "KEY_SEQ");
-
                     Entity pkEntity = entityMap.get(pktable);
                     if (pkEntity == null) {
                         continue;

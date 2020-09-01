@@ -61,7 +61,7 @@ public class DatabaseSchemaTest {
             Assertions.assertEquals("ACCOUNT",entities.get(4).getName());
             List<Relation> accountRelations = entities.get(4).getRelations();
             Assertions.assertEquals(Cardinality.ONE_TO_MANY, accountRelations.get(0).getCardinality());
-            Assertions.assertEquals("accounts",accountRelations.get(0).getName());
+            Assertions.assertEquals("account",accountRelations.get(0).getName());
         }
     }
 }
