@@ -105,6 +105,8 @@ public class GraphQLSchemaBuilder {
         schemaDefinitionBuilder.operationTypeDefinition(opBuilder.build());
         builder.definition(schemaDefinitionBuilder.build());
 
+        builder.additionalDirectives(SQLDirective.addDirectiveToSchema("sql"));
+
         builder.codeRegistry(codeBuilder.build());
 
         return builder.build();
