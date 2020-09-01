@@ -117,50 +117,64 @@ public class DatabaseSchemaBuilder {
     private void buildRelations(Map<String, Entity> entityMap) throws SQLException {
         for (Entity entity : entityMap.values()) {
             HashMap<String, Relation> allRelations = new HashMap<String, Relation>();
-            try (ResultSet results = this.databaseMetaData.getImportedKeys(null, this.schema, entity.getName())) {
-                LOGGER.debug("Loading imported keys for table: " + entity.getName());
-                while (results.next()) {
-                    String pktable = results.getString("PKTABLE_NAME"); // 3
-                    String pkColumn = results.getString("PKCOLUMN_NAME"); // 4
-                    String fktable = results.getString("FKTABLE_NAME"); // 7
-                    String fkColumn = results.getString("FKCOLUMN_NAME"); // 8
-                    short seqNum = safeGetShort(results, "KEY_SEQ");
 
-                    Entity pkEntity = entityMap.get(pktable);
-                    if (pkEntity == null) {
-                        continue;
-                    }
+            ResultSet metaDataExportedKeys = this.databaseMetaData.getExportedKeys(null,this.schema,entity.getName());
+            setDatabaseMetaData(metaDataExportedKeys, entityMap, allRelations, true);
 
-                    Entity fkEntity = entityMap.get(fktable);
-                    if (fkEntity == null) {
-                        continue;
-                    }
-                    /*
-                    String fkName = results.getString("FK_NAME");
-                    if (fkName == null) {
-                        fkName = pktable; //$NON-NLS-1$
-                    }
-                    */
+            ResultSet metaDataImportedKeys = this.databaseMetaData.getImportedKeys(null, this.schema, entity.getName());
+            setDatabaseMetaData(metaDataImportedKeys, entityMap, allRelations, false);
 
-                    Relation fkInfo = allRelations.get(pktable);
-                    if (fkInfo == null) {
-                        // make name of the relationship more meaningful
-                        fkInfo = new Relation(StringUtil.plural(fktable).toLowerCase());
-                        fkInfo.setForeignEntity(pkEntity);
-                        allRelations.put(pktable, fkInfo);
-                    }
-                    fkInfo.getKeyColumns().put(seqNum, pkColumn);
-                    fkInfo.getReferencedKeyColumns().put(seqNum, fkColumn);
-
-                    if (pkEntity.isPartOfPrimaryKey(pkColumn) && fkEntity.isPartOfPrimaryKey(fkColumn)) {
-                        fkInfo.setCardinality(Cardinality.ONE_TO_ONE);
-                    } else {
-                        fkInfo.setNullable(fkEntity.getAttribute(fkColumn).isNullable());
-                        fkInfo.setCardinality(Cardinality.ONE_TO_MANY);
-                    }
-                }
-            }
             entity.setRelations(new ArrayList<Relation>(allRelations.values()));
+        }
+    }
+
+    public void setDatabaseMetaData(ResultSet resultSet, Map<String, Entity> entityMap, HashMap<String, Relation> allRelations, boolean ctr) throws SQLException {
+        while (resultSet.next()) {
+            String pkTable = resultSet.getString("PKTABLE_NAME");
+            String pkColumn = resultSet.getString("PKCOLUMN_NAME");
+            String fkTable = resultSet.getString("FKTABLE_NAME");
+            String fkColumn = resultSet.getString("FKCOLUMN_NAME");
+            short seqNumber = safeGetShort(resultSet,"KEY_SEQ");
+
+            Entity pkEntity = entityMap.get(pkTable);
+            if (pkEntity == null) {
+                continue;
+            }
+
+            Entity fkEntity = entityMap.get(fkTable);
+            if (fkEntity == null) {
+                continue;
+            }
+
+            Relation key;
+
+            if(ctr) {
+                key = allRelations.get(fkTable);
+                if (key == null) {
+                    key = new Relation(pkTable.toLowerCase());
+                    key.setForeignEntity(fkEntity);
+                    allRelations.put(fkTable, key);
+                }
+                key.getKeyColumns().put(seqNumber, fkColumn);
+                key.getReferencedKeyColumns().put(seqNumber, pkColumn);
+                key.setExportedKey(true);
+            } else {
+                key = allRelations.get(pkTable);
+                if (key == null) {
+                    key = new Relation(StringUtil.plural(fkTable).toLowerCase());
+                    key.setForeignEntity(pkEntity);
+                    allRelations.put(pkTable, key);
+                }
+                key.getKeyColumns().put(seqNumber, pkColumn);
+                key.getReferencedKeyColumns().put(seqNumber, fkColumn);
+            }
+
+            if (pkEntity.isPartOfPrimaryKey(pkColumn) && fkEntity.isPartOfPrimaryKey(fkColumn)) {
+                key.setCardinality(Cardinality.ONE_TO_ONE);
+            } else {
+                key.setNullable(fkEntity.getAttribute(fkColumn).isNullable());
+                key.setCardinality(Cardinality.ONE_TO_MANY);
+            }
         }
     }
 }

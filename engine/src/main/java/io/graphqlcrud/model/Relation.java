@@ -25,6 +25,7 @@ public class Relation {
     private TreeMap<Short, String> referencedKeyColumns = new TreeMap<Short, String>();
     private Cardinality cardinality;
     private boolean nullable;
+    private boolean exportedKey;
 
     public Relation(String name) {
         this.name = name;
@@ -78,13 +79,24 @@ public class Relation {
         this.nullable = nullable;
     }
 
+    public boolean isExportedKey() {
+        return exportedKey;
+    }
+
+    public void setExportedKey(boolean exportedKey) {
+        this.exportedKey = exportedKey;
+    }
+
     @Override
     public String toString() {
         return "Relation{" +
-                "foreignEntity=" + (foreignEntity != null ? foreignEntity.getName() : "null") +
-                ", keyColumns=" + getKeyColumns() +
-                ", referencedKeyColumns=" + getReferencedKeyColumns() +
-                ", cardinality=" + (cardinality != null ? cardinality.toString() : "null") +
+                "name='" + name + '\'' +
+                ", foreignEntity=" + foreignEntity +
+                ", keyColumns=" + keyColumns +
+                ", referencedKeyColumns=" + referencedKeyColumns +
+                ", cardinality=" + cardinality +
+                ", nullable=" + nullable +
+                ", exportedKey=" + exportedKey +
                 '}';
     }
 }

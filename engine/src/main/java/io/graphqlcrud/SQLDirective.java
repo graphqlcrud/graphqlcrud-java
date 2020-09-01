@@ -15,7 +15,9 @@
  */
 package io.graphqlcrud;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import graphql.Scalars;
 import graphql.introspection.Introspection;
@@ -56,6 +58,21 @@ public class SQLDirective {
         }
 
         return sql;
+    }
+
+    public static Set<GraphQLDirective> addDirectiveToSchema(String directiveName) {
+        Set<GraphQLDirective> set = new HashSet<>();
+        GraphQLDirective directive = null;
+        if(directiveName.equals("sql")) {
+            directive = GraphQLDirective.newDirective()
+                    .name(directiveName)
+                    .argument(GraphQLArgument.newArgument().name("keys").type(GraphQLList.list(Scalars.GraphQLString)).build())
+                    .argument(GraphQLArgument.newArgument().name("reference_keys").type(GraphQLList.list(Scalars.GraphQLString)).build())
+                    .validLocations(Introspection.DirectiveLocation.FIELD_DEFINITION)
+                    .build();
+        }
+        set.add(directive);
+        return set;
     }
 
     public String getTableName() {

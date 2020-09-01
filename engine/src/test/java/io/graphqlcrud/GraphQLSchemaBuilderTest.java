@@ -71,6 +71,11 @@ public class GraphQLSchemaBuilderTest {
             Assertions.assertEquals("[ACCOUNT_ID]", holdings.getDirective("sql").getArgument("keys").getValue().toString());
             Assertions.assertEquals("[ACCOUNT_ID]", holdings.getDirective("sql").getArgument("reference_keys").getValue().toString());
 
+            GraphQLFieldDefinition customers = account.getFieldDefinition("customer");
+            Assertions.assertNotNull(customers.getDirective("sql"));
+            Assertions.assertEquals("[SSN]", customers.getDirective("sql").getArgument("keys").getValue().toString());
+            Assertions.assertEquals("[SSN]", customers.getDirective("sql").getArgument("reference_keys").getValue().toString());
+
             GraphQLObjectType product = schema.getObjectType("PRODUCT");
             Assertions.assertNotNull(product);
             Assertions.assertEquals("PUBLIC.PRODUCT", product.getDirective("sql").getArgument("table").getValue().toString());

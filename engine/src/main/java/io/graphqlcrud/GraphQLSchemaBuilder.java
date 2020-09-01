@@ -105,6 +105,8 @@ public class GraphQLSchemaBuilder {
         schemaDefinitionBuilder.operationTypeDefinition(opBuilder.build());
         builder.definition(schemaDefinitionBuilder.build());
 
+        builder.additionalDirectives(SQLDirective.addDirectiveToSchema("sql"));
+
         builder.codeRegistry(codeBuilder.build());
 
         return builder.build();
@@ -116,6 +118,9 @@ public class GraphQLSchemaBuilder {
             String name = StringUtil.plural(entity.getName()).toLowerCase();
             GraphQLFieldDefinition.Builder builder = GraphQLFieldDefinition.newFieldDefinition();
             builder.name(name);
+            builder.argument(GraphQLArgument.newArgument().name("page").type(GraphQLTypeReference.typeRef("PageRequest")).build());
+            builder.argument(GraphQLArgument.newArgument().name("filter").type(GraphQLTypeReference.typeRef(StringUtil.capitalize(entity.getName().toLowerCase()) + "FilterInput")).build());
+            builder.argument(GraphQLArgument.newArgument().name("orderBy").type(GraphQLTypeReference.typeRef("OrderByInput")).build());
             builder.type(GraphQLList.list(new GraphQLTypeReference(entity.getName())));
             queryTypeBuilder.field(builder.build());
             codeBuilder.dataFetcher(FieldCoordinates.coordinates("QueryType", name), DEFAULT_DATA_FETCHER_FACTORY);
@@ -166,17 +171,22 @@ public class GraphQLSchemaBuilder {
                 if (relation.getForeignEntity().getName().equals(entity.getName())) {
                     GraphQLFieldDefinition.Builder fieldBuilder = GraphQLFieldDefinition.newFieldDefinition();
                     fieldBuilder.name(relation.getName());
-                    fieldBuilder.argument(GraphQLArgument.newArgument().name("page").type(GraphQLTypeReference.typeRef("PageRequest")).build());
-                    fieldBuilder.argument(GraphQLArgument.newArgument().name("filter").type(GraphQLTypeReference.typeRef(StringUtil.capitalize(e.getName().toLowerCase()) + "FilterInput")).build());
-                    fieldBuilder.argument(GraphQLArgument.newArgument().name("orderBy").type(GraphQLTypeReference.typeRef("OrderByInput")).build());
+                    if(relation.isExportedKey()) {
+                        fieldBuilder.type(new GraphQLTypeReference(e.getName()));
+                    }
+                    else {
+                        fieldBuilder.argument(GraphQLArgument.newArgument().name("page").type(GraphQLTypeReference.typeRef("PageRequest")).build());
+                        fieldBuilder.argument(GraphQLArgument.newArgument().name("filter").type(GraphQLTypeReference.typeRef(StringUtil.capitalize(e.getName().toLowerCase()) + "FilterInput")).build());
+                        fieldBuilder.argument(GraphQLArgument.newArgument().name("orderBy").type(GraphQLTypeReference.typeRef("OrderByInput")).build());
+                        if (relation.isNullable()) {
+                            fieldBuilder.type(GraphQLList.list(new GraphQLTypeReference(e.getName())));
+                        } else {
+                            fieldBuilder.type(GraphQLNonNull.nonNull(GraphQLList.list(new GraphQLTypeReference(e.getName()))));
+                        }
+                    }
                     fieldBuilder.withDirective(SQLDirective.newDirective()
                             .primaryFields(new ArrayList<String>(relation.getKeyColumns().values()))
                             .foreignFields(new ArrayList<String>(relation.getReferencedKeyColumns().values())).build());
-                    if (relation.isNullable()) {
-                        fieldBuilder.type(GraphQLList.list(new GraphQLTypeReference(e.getName())));
-                    } else {
-                        fieldBuilder.type(GraphQLNonNull.nonNull(GraphQLList.list(new GraphQLTypeReference(e.getName()))));
-                    }
                     fields.add(fieldBuilder);
                     codeBuilder.dataFetcher(FieldCoordinates.coordinates(entity.getName(), relation.getName()), DEFAULT_ROW_FETCHER_FACTORY);
                 }
