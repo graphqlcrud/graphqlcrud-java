@@ -23,6 +23,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.language.Field;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.GraphQLFieldDefinition;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLType;
 
 // This must be thread safe, as it will be called by multiple threads at same time
 public class RowFetcher implements DataFetcher<Object> {
@@ -46,7 +49,12 @@ public class RowFetcher implements DataFetcher<Object> {
         SQLDirective sqlDirective = SQLDirective.find(environment.getFieldDefinition().getDirectives());
         // this is link to another table
         if (sqlDirective != null && rs != null){
+            GraphQLFieldDefinition definition = environment.getFieldDefinition();
+            GraphQLType type = definition.getType();
             List<?> node = this.mapper.readValue(rs.getBytes(f.getName()), List.class);
+            if (type instanceof GraphQLObjectType) {
+                return node.get(0);
+            }
             return node;
         }
         if (rs != null) {
