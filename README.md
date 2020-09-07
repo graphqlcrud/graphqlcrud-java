@@ -37,6 +37,6 @@ once the application starts, using the browser goto URL [http://localhost:8080](
 
 to run in non development mode:
 
-The application is now runnable using `java -jar app/target/graphqlcrud-java-1.0.0-SNAPSHOT-runner.jar`.
+The application is now runnable using `java -jar app/target/app-1.0.0-SNAPSHOT-runner.jar`.
 
 

@@ -23,13 +23,13 @@ import graphql.schema.GraphQLType;
 
 public interface QueryVisitor {
 
-    void visitScalar(Field rootFeild, GraphQLFieldDefinition rootDefinition, GraphQLType type);
+    void visitScalar(Field rootField, GraphQLFieldDefinition rootDefinition, GraphQLType type);
 
-    void startVisitObject(Field rootFeild, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type);
-    void endVisitObject(Field rootFeild, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type);
+    void startVisitObject(Field rootField, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type);
+    void endVisitObject(Field rootField, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type);
 
-    void startVisitRootObject(Field rootFeild, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type);
-    void endVisitRootObject(Field rootFeild, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type);
+    void startVisitRootObject(Field rootField, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type);
+    void endVisitRootObject(Field rootField, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type);
 
     void visitArgument(Field field, GraphQLFieldDefinition definition, GraphQLObjectType type, Argument arg);
 }
