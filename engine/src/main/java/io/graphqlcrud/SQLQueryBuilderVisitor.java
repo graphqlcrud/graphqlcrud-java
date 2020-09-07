@@ -15,21 +15,10 @@
  */
 package io.graphqlcrud;
 
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.jsonEntry;
-import static org.jooq.impl.DSL.jsonObject;
-import static org.jooq.impl.DSL.jsonbArrayAgg;
-import static org.jooq.impl.DSL.name;
-import static org.jooq.impl.DSL.table;
-import static org.jooq.impl.DSL.val;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import graphql.language.*;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.JSONEntry;
@@ -39,23 +28,22 @@ import org.jooq.SelectSelectStep;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 
-import graphql.language.Argument;
-import graphql.language.BooleanValue;
-import graphql.language.Field;
-import graphql.language.FloatValue;
-import graphql.language.IntValue;
-import graphql.language.StringValue;
-import graphql.language.Value;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLModifiedType;
 import graphql.schema.GraphQLObjectType;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.jooq.impl.DSL.*;
+
 /**
  * This is root SQL builder, it is assumed any special cases are added as extensions to this class by extending it
  */
 public class SQLQueryBuilderVisitor implements QueryVisitor{
+    private static final Logger LOGGER = LoggerFactory.getLogger(SQLQueryBuilderVisitor.class);
 
     protected AtomicInteger inc = new AtomicInteger(0);
     protected SQLContext ctx;
@@ -200,7 +188,7 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
     }
 
     @Override
-    public void endVisitRootObject(Field rootFeild, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type) {
+    public void endVisitRootObject(Field rootField, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type) {
         VistorContext vctx = this.stack.peek();
 
         // add orderby
@@ -263,25 +251,138 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
     public void visitArgument(Field field, GraphQLFieldDefinition definition, GraphQLObjectType type, Argument arg) {
         VistorContext vctx = this.stack.peek();
 
-        org.jooq.Field<Object> left = field(name(vctx.alias, arg.getName()));
+        String argName = arg.getName();
+        Value<?> argValue = arg.getValue();
 
-        Value<?> v = arg.getValue();
-        Condition c = null;
-        if (v instanceof StringValue) {
-            c = left.eq(((StringValue)v).getValue());
-        } else if (v instanceof BooleanValue) {
-            c = left.eq(((BooleanValue)v).isValue());
-        } else if (v instanceof IntValue) {
-            c = left.eq(((IntValue)v).getValue());
-        } else if (v instanceof FloatValue) {
-            c = left.eq(((FloatValue)v).getValue());
-        }
-
-        if (vctx.condition ==  null) {
-            vctx.condition = c;
+        if(argName.equals("page")) {
+            //TODO : Walk through page results
+        } else if(argName.equals("filter")) {
+            LOGGER.debug("Walk through filter results");
+            if(!argValue.getChildren().isEmpty())
+                visitFilterInputs(argValue, vctx, null);
+            else
+                throw new RuntimeException("Cannot fetch filter results on " + argValue);
         } else {
-            vctx.condition = vctx.condition.and(c);
+            org.jooq.Field<Object> left = field(name(vctx.alias, arg.getName()));
+            Condition condition = visitValueType(argValue, left, "eq");
+            visitCondition(null,condition);
         }
     }
 
+    public Condition visitStringValue(Value v, org.jooq.Field left, String conditionName) {
+        Condition c = null;
+        if(conditionName.equals("eq"))
+            c = left.eq(((StringValue)v).getValue());
+        else if(conditionName.equals("ne"))
+            c = left.ne(((StringValue) v).getValue());
+        else if(conditionName.equals("lt"))
+            c = left.lt(((StringValue) v).getValue());
+        else if(conditionName.equals("le"))
+            c = left.le(((StringValue) v).getValue());
+        else if(conditionName.equals("gt"))
+            c = left.gt(((StringValue) v).getValue());
+        else if(conditionName.equals("ge"))
+            c = left.in(((StringValue) v).getValue());
+        else if(conditionName.equals("contains"))
+            c = left.contains(((StringValue) v).getValue());
+        else if(conditionName.equals("startsWith"))
+            c = left.startsWith(((StringValue) v).getValue());
+        else if(conditionName.equals("endsWith"))
+            c = left.endsWith(((StringValue) v).getValue());
+        return c;
+    }
+
+    public Condition visitBooleanValue(Value v, org.jooq.Field left, String conditionName) {
+        Condition c = null;
+        if(conditionName.equals("eq"))
+            c = left.eq(((BooleanValue)v).isValue());
+        else if(conditionName.equals("ne"))
+            c = left.ne(((BooleanValue) v).isValue());
+        return c;
+    }
+
+    public Condition visitIntValue(Value v, org.jooq.Field left, String conditionName) {
+        Condition c = null;
+        if(conditionName.equals("eq"))
+            c = left.eq(((IntValue)v).getValue());
+        else if(conditionName.equals("ne"))
+            c = left.ne(((IntValue) v).getValue());
+        else if(conditionName.equals("lt"))
+            c = left.lt(((IntValue) v).getValue());
+        else if(conditionName.equals("le"))
+            c = left.le(((IntValue) v).getValue());
+        else if(conditionName.equals("gt"))
+            c = left.gt(((IntValue) v).getValue());
+        else if(conditionName.equals("ge"))
+            c = left.ge(((IntValue) v).getValue());
+        return c;
+    }
+
+    public Condition visitFloatValue(Value v, org.jooq.Field left, String conditionName) {
+        Condition c = null;
+        if(conditionName.equals("eq"))
+            c = left.eq(((FloatValue)v).getValue());
+        else if(conditionName.equals("ne"))
+            c = left.ne(((FloatValue) v).getValue());
+        else if(conditionName.equals("lt"))
+            c = left.lt(((FloatValue) v).getValue());
+        else if(conditionName.equals("le"))
+            c = left.le(((FloatValue) v).getValue());
+        else if(conditionName.equals("gt"))
+            c = left.gt(((FloatValue) v).getValue());
+        else if(conditionName.equals("ge"))
+            c = left.ge(((FloatValue) v).getValue());
+        return c;
+    }
+
+    public Condition visitValueType(Value v, org.jooq.Field left, String conditionName) {
+        Condition c = null;
+        if (v instanceof StringValue) {
+            c = visitStringValue(v,left,conditionName);
+        } else if (v instanceof BooleanValue) {
+            c = visitBooleanValue(v,left,conditionName);
+        } else if (v instanceof IntValue) {
+            c = visitIntValue(v,left,conditionName);
+        } else if (v instanceof FloatValue) {
+            c = visitFloatValue(v,left,conditionName);
+        }
+        return c;
+    }
+
+
+    public void visitFilterInputs(Value argumentValue, VistorContext vistorContext, String conditionName) {
+        org.jooq.Field<Object> left = null;
+        for (ObjectField field : ((ObjectValue) argumentValue).getObjectFields()) {
+            if(!field.getValue().getChildren().isEmpty()) {
+                if(field.getName().equals("and")) {
+                    conditionName = field.getName();
+                } else if(field.getName().equals("or")) {
+                    conditionName = field.getName();
+                } else {
+                    left = field(name(vistorContext.alias, field.getName()));
+                    org.jooq.Field<Object> finalLeft = left;
+                    String finalConditionName = conditionName;
+                    field.getValue().getChildren().forEach(child -> {
+                        Condition condition = visitValueType(((ObjectField) child).getValue(), finalLeft, ((ObjectField) child).getName());
+                        visitCondition(finalConditionName, condition);
+                    });
+                }
+                visitFilterInputs(field.getValue(), vistorContext, conditionName);
+            }
+        }
+    }
+
+    public void visitCondition(String conditionName, Condition conditionValue) {
+        VistorContext vistorContext = this.stack.peek();
+        if(vistorContext.condition == null) {
+            vistorContext.condition = conditionValue;
+        }
+        else {
+            if(conditionName.equals("and")) {
+                    vistorContext.condition = vistorContext.condition.and(conditionValue);
+            } else if (conditionName.equals("or")) {
+                vistorContext.condition = vistorContext.condition.or(conditionValue);
+            }
+        }
+    }
 }
