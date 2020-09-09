@@ -15,6 +15,8 @@
  */
 package io.graphqlcrud;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -269,82 +271,161 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
         }
     }
 
-    public Condition visitStringValue(Value v, org.jooq.Field left, String conditionName) {
+    public Condition visitStringValue(String value, org.jooq.Field left, String conditionName) {
         Condition c = null;
-        if(conditionName.equals("eq"))
-            c = left.eq(((StringValue)v).getValue());
-        else if(conditionName.equals("ne"))
-            c = left.ne(((StringValue) v).getValue());
-        else if(conditionName.equals("lt"))
-            c = left.lt(((StringValue) v).getValue());
-        else if(conditionName.equals("le"))
-            c = left.le(((StringValue) v).getValue());
-        else if(conditionName.equals("gt"))
-            c = left.gt(((StringValue) v).getValue());
-        else if(conditionName.equals("ge"))
-            c = left.in(((StringValue) v).getValue());
-        else if(conditionName.equals("contains"))
-            c = left.contains(((StringValue) v).getValue());
-        else if(conditionName.equals("startsWith"))
-            c = left.startsWith(((StringValue) v).getValue());
-        else if(conditionName.equals("endsWith"))
-            c = left.endsWith(((StringValue) v).getValue());
+        switch (conditionName) {
+            case "eq":
+                c = left.eq(value);
+                break;
+            case "ne":
+                c = left.ne(value);
+                break;
+            case "lt":
+                c = left.lt(value);
+                break;
+            case "le":
+                c = left.le(value);
+                break;
+            case "gt":
+                c = left.gt(value);
+                break;
+            case "ge":
+                c = left.in(value);
+                break;
+            case "contains":
+                c = left.contains(value);
+                break;
+            case "startsWith":
+                c = left.startsWith(value);
+                break;
+            case "endsWith":
+                c = left.endsWith(value);
+                break;
+            default:
+                throw new RuntimeException("Unexpected value: " + conditionName);
+        }
         return c;
     }
 
-    public Condition visitBooleanValue(Value v, org.jooq.Field left, String conditionName) {
+    public Condition visitBooleanValue(Boolean value, org.jooq.Field left, String conditionName) {
         Condition c = null;
-        if(conditionName.equals("eq"))
-            c = left.eq(((BooleanValue)v).isValue());
-        else if(conditionName.equals("ne"))
-            c = left.ne(((BooleanValue) v).isValue());
+        switch (conditionName) {
+            case "eq":
+                c = left.eq(value);
+                break;
+            case "ne":
+                c = left.ne(value);
+                break;
+            default:
+                throw new RuntimeException("Unexpected value: " + conditionName);
+        }
         return c;
     }
 
-    public Condition visitIntValue(Value v, org.jooq.Field left, String conditionName) {
+    public Condition visitIntValue(BigInteger value, org.jooq.Field left, String conditionName) {
         Condition c = null;
-        if(conditionName.equals("eq"))
-            c = left.eq(((IntValue)v).getValue());
-        else if(conditionName.equals("ne"))
-            c = left.ne(((IntValue) v).getValue());
-        else if(conditionName.equals("lt"))
-            c = left.lt(((IntValue) v).getValue());
-        else if(conditionName.equals("le"))
-            c = left.le(((IntValue) v).getValue());
-        else if(conditionName.equals("gt"))
-            c = left.gt(((IntValue) v).getValue());
-        else if(conditionName.equals("ge"))
-            c = left.ge(((IntValue) v).getValue());
+        switch (conditionName) {
+            case "eq":
+                c = left.eq(value);
+                break;
+            case "ne":
+                c = left.ne(value);
+                break;
+            case "lt":
+                c = left.lt(value);
+                break;
+            case "le":
+                c = left.le(value);
+                break;
+            case "gt":
+                c = left.gt(value);
+                break;
+            case "ge":
+                c = left.ge(value);
+                break;
+            default:
+                throw new RuntimeException("Unexpected value: " + conditionName);
+        }
         return c;
     }
 
-    public Condition visitFloatValue(Value v, org.jooq.Field left, String conditionName) {
+    public Condition visitFloatValue(BigDecimal value, org.jooq.Field left, String conditionName) {
         Condition c = null;
-        if(conditionName.equals("eq"))
-            c = left.eq(((FloatValue)v).getValue());
-        else if(conditionName.equals("ne"))
-            c = left.ne(((FloatValue) v).getValue());
-        else if(conditionName.equals("lt"))
-            c = left.lt(((FloatValue) v).getValue());
-        else if(conditionName.equals("le"))
-            c = left.le(((FloatValue) v).getValue());
-        else if(conditionName.equals("gt"))
-            c = left.gt(((FloatValue) v).getValue());
-        else if(conditionName.equals("ge"))
-            c = left.ge(((FloatValue) v).getValue());
+        switch (conditionName) {
+            case "eq":
+                c = left.eq(value);
+                break;
+            case "ne":
+                c = left.ne(value);
+                break;
+            case "lt":
+                c = left.lt(value);
+                break;
+            case "le":
+                c = left.le(value);
+                break;
+            case "gt":
+                c = left.gt(value);
+                break;
+            case "ge":
+                c = left.ge(value);
+                break;
+            default:
+                throw new RuntimeException("Unexpected value: " + conditionName);
+        }
+        return c;
+    }
+
+
+    public Condition visitArrayValue(List<Value> v, org.jooq.Field left, String conditionName) {
+        Condition c = null;
+        switch (conditionName) {
+            case "between":
+                if (v.get(0) instanceof FloatValue) {
+                    c = left.between(((FloatValue) v.get(0)).getValue(), ((FloatValue) v.get(1)).getValue());
+                } else if (v.get(0) instanceof IntValue) {
+                    c = left.between(((IntValue) v.get(0)).getValue(), ((IntValue) v.get(1)).getValue());
+                }
+                break;
+            case "in":
+                if (v.get(0) instanceof StringValue) {
+                    List<String> list = new ArrayList<>();
+                    for (Value value : v) {
+                        list.add(((StringValue) value).getValue());
+                    }
+                    c = left.in(list);
+                } else if (v.get(0) instanceof FloatValue) {
+                    List<BigDecimal> list = new ArrayList<>();
+                    for (Value value : v) {
+                        list.add(((FloatValue) value).getValue());
+                    }
+                    c = left.in(list);
+                } else if (v.get(0) instanceof IntValue) {
+                    List<BigInteger> list = new ArrayList<>();
+                    for (Value value : v) {
+                        list.add(((IntValue) value).getValue());
+                    }
+                    c = left.in(list);
+                }
+                break;
+            default:
+                throw new RuntimeException("Unexpected value: " + conditionName);
+        }
         return c;
     }
 
     public Condition visitValueType(Value v, org.jooq.Field left, String conditionName) {
         Condition c = null;
         if (v instanceof StringValue) {
-            c = visitStringValue(v,left,conditionName);
+            c = visitStringValue(((StringValue) v).getValue(),left,conditionName);
         } else if (v instanceof BooleanValue) {
-            c = visitBooleanValue(v,left,conditionName);
+            c = visitBooleanValue(((BooleanValue) v).isValue(),left,conditionName);
         } else if (v instanceof IntValue) {
-            c = visitIntValue(v,left,conditionName);
+            c = visitIntValue(((IntValue) v).getValue(),left,conditionName);
         } else if (v instanceof FloatValue) {
-            c = visitFloatValue(v,left,conditionName);
+            c = visitFloatValue(((FloatValue) v).getValue(),left,conditionName);
+        } else if(v instanceof ArrayValue) {
+            c = visitArrayValue(((ArrayValue) v).getValues(),left,conditionName);
         }
         return c;
     }
@@ -362,12 +443,15 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
                     left = field(name(vistorContext.alias, field.getName()));
                     org.jooq.Field<Object> finalLeft = left;
                     String finalConditionName = conditionName;
-                    field.getValue().getChildren().forEach(child -> {
-                        Condition condition = visitValueType(((ObjectField) child).getValue(), finalLeft, ((ObjectField) child).getName());
-                        visitCondition(finalConditionName, condition);
-                    });
+                    for(Object object : field.getValue().getChildren()) {
+                        if(object instanceof ObjectField) {
+                            Condition condition = visitValueType(((ObjectField) object).getValue(), finalLeft, ((ObjectField) object).getName());
+                            visitCondition(finalConditionName, condition);
+                        }
+                    }
                 }
-                visitFilterInputs(field.getValue(), vistorContext, conditionName);
+                if(field.getValue() instanceof ObjectValue)
+                    visitFilterInputs(field.getValue(), vistorContext, conditionName);
             }
         }
     }
@@ -378,7 +462,9 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
             vistorContext.condition = conditionValue;
         }
         else {
-            if(conditionName.equals("and")) {
+            if(conditionName == null) {
+                vistorContext.condition = vistorContext.condition.and(conditionValue);
+            } else if(conditionName.equals("and")) {
                     vistorContext.condition = vistorContext.condition.and(conditionValue);
             } else if (conditionName.equals("or")) {
                 vistorContext.condition = vistorContext.condition.or(conditionValue);

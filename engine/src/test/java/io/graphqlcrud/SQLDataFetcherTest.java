@@ -218,6 +218,55 @@ class SQLDataFetcherTest {
                 "order by \"g0\".\"SSN\"";
         Assertions.assertEquals(expected,result);
 
+        String query1 = "{\n" +
+                "  accounts (filter: {\n" +
+                "    ACCOUNT_ID: {\n" +
+                "      in: [19980001,19980005,19990009]\n" +
+                "    },\n" +
+                "    and: {\n" +
+                "      STATUS: {\n" +
+                "        eq: \"Personal\"\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }) {\n" +
+                "    ACCOUNT_ID\n" +
+                "    SSN\n" +
+                "    STATUS\n" +
+                "  }\n" +
+                "}";
+        String result1 = executeSQL(query1);
+        String expected1 = "select\n" +
+                "  \"g0\".\"ACCOUNT_ID\" \"ACCOUNT_ID\",\n" +
+                "  \"g0\".\"SSN\" \"SSN\",\n" +
+                "  \"g0\".\"STATUS\" \"STATUS\"\n" +
+                "from PUBLIC.ACCOUNT \"g0\"\n" +
+                "where (\n" +
+                "  \"g0\".\"ACCOUNT_ID\" in (\n" +
+                "    19980001, 19980005, 19990009\n" +
+                "  )\n" +
+                "  and \"g0\".\"STATUS\" = 'Personal'\n" +
+                ")\n" +
+                "order by \"g0\".\"ACCOUNT_ID\"";
+        Assertions.assertEquals(expected1,result1);
+
+        String query2 = "{\n" +
+                "  accounts (filter: {\n" +
+                "    ACCOUNT_ID: {\n" +
+                "      between: [19980001,19980005]\n" +
+                "    }\n" +
+                "  }) {\n" +
+                "    ACCOUNT_ID\n" +
+                "    STATUS\n" +
+                "  }\n" +
+                "}";
+        String result2 = executeSQL(query2);
+        String expected2 = "select\n" +
+                "  \"g0\".\"ACCOUNT_ID\" \"ACCOUNT_ID\",\n" +
+                "  \"g0\".\"STATUS\" \"STATUS\"\n" +
+                "from PUBLIC.ACCOUNT \"g0\"\n" +
+                "where \"g0\".\"ACCOUNT_ID\" between 19980001 and 19980005\n" +
+                "order by \"g0\".\"ACCOUNT_ID\"";
+        Assertions.assertEquals(expected2,result2);
     }
 
     @Test
@@ -284,29 +333,41 @@ class SQLDataFetcherTest {
     public void simpleAndOrFilterQuery() throws Exception {
         String query = "{\n" +
                 "  customers (filter: {\n" +
-                "    and: {\n" +
-                "      LASTNAME: {\n" +
-                "        eq: \"Smith\"\n" +
-                "      },\n" +
-                "      or: {\n" +
-                "        LASTNAME: {\n" +
-                "          eq: \"Doe\"\n" +
-                "        }\n" +
+                "    LASTNAME: {\n" +
+                "      eq: \"Smith\"\n" +
+                "    },\n" +
+                "    FIRSTNAME: {\n" +
+                "      eq: \"John\"\n" +
+                "    },\n" +
+                "    or: {\n" +
+                "      SSN: {\n" +
+                "        eq: \"CST01002\"\n" +
                 "      }\n" +
                 "    }\n" +
                 "  }) {\n" +
-                "    SSN\n" +
                 "    FIRSTNAME\n" +
+                "    LASTNAME\n" +
+                "    addreses {\n" +
+                "      STATE\n" +
+                "    }\n" +
                 "  }\n" +
                 "}";
         String result = executeSQL(query);
-        String expected = "select\n" +
-                "  \"g0\".\"SSN\" \"SSN\",\n" +
-                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\"\n" +
+        String expected ="select\n" +
+                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\",\n" +
+                "  \"g0\".\"LASTNAME\" \"LASTNAME\",\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(key 'STATE' value \"g1\".\"STATE\"))\n" +
+                "    from PUBLIC.ADDRESS \"g1\"\n" +
+                "    where \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
+                "  ) \"addreses\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "where (\n" +
-                "  \"g0\".\"LASTNAME\" = 'Smith'\n" +
-                "  or \"g0\".\"LASTNAME\" = 'Doe'\n" +
+                "  (\n" +
+                "    \"g0\".\"LASTNAME\" = 'Smith'\n" +
+                "    and \"g0\".\"FIRSTNAME\" = 'John'\n" +
+                "  )\n" +
+                "  or \"g0\".\"SSN\" = 'CST01002'\n" +
                 ")\n" +
                 "order by \"g0\".\"SSN\"";
         Assertions.assertEquals(expected,result);

@@ -68,7 +68,8 @@ public class Filters {
                 .field(GraphQLInputObjectField.newInputObjectField().name("lt").type(Scalars.GraphQLFloat))
                 .field(GraphQLInputObjectField.newInputObjectField().name("ge").type(Scalars.GraphQLFloat))
                 .field(GraphQLInputObjectField.newInputObjectField().name("gt").type(Scalars.GraphQLFloat))
-                .field(GraphQLInputObjectField.newInputObjectField().name("in").type(GraphQLList.list(GraphQLNonNull.nonNull(Scalars.GraphQLFloat))));
+                .field(GraphQLInputObjectField.newInputObjectField().name("in").type(GraphQLList.list(GraphQLNonNull.nonNull(Scalars.GraphQLFloat))))
+                .field(GraphQLInputObjectField.newInputObjectField().name("between").type(GraphQLList.list(GraphQLNonNull.nonNull(Scalars.GraphQLFloat))));
     }
 
     public static GraphQLInputObjectType.Builder intInputBuilder() {
@@ -79,7 +80,8 @@ public class Filters {
                 .field(GraphQLInputObjectField.newInputObjectField().name("lt").type(Scalars.GraphQLInt))
                 .field(GraphQLInputObjectField.newInputObjectField().name("ge").type(Scalars.GraphQLInt))
                 .field(GraphQLInputObjectField.newInputObjectField().name("gt").type(Scalars.GraphQLInt))
-                .field(GraphQLInputObjectField.newInputObjectField().name("in").type(GraphQLList.list(GraphQLNonNull.nonNull(Scalars.GraphQLInt))));
+                .field(GraphQLInputObjectField.newInputObjectField().name("in").type(GraphQLList.list(GraphQLNonNull.nonNull(Scalars.GraphQLInt))))
+                .field(GraphQLInputObjectField.newInputObjectField().name("between").type(GraphQLList.list(GraphQLNonNull.nonNull(Scalars.GraphQLInt))));
     }
 
     public static GraphQLInputObjectType.Builder orderByInputBuilder() {
