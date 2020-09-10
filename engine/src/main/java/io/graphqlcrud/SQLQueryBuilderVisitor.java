@@ -51,15 +51,18 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
     protected SQLContext ctx;
     protected DSLContext create = null;
 
-    private static class VistorContext {
+    private static class VisitorContext {
         String alias;
         SelectSelectStep<Record> selectClause;
         Map<String, org.jooq.Field<?>> selectedColumns = new LinkedHashMap<>();
         Map<String, Field> selectedFields = new LinkedHashMap<>();
         org.jooq.Condition condition;
+        Boolean orCounter = false;
+        Integer size = 0;
+        Integer level = 0;
     }
 
-    private Stack<VistorContext> stack = new Stack<>();
+    private Stack<VisitorContext> stack = new Stack<>();
 
     public SQLQueryBuilderVisitor(SQLContext ctx) {
         this.ctx = ctx;
@@ -68,7 +71,7 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
 
     @Override
     public void visitScalar(Field field, GraphQLFieldDefinition definition, GraphQLType type) {
-        VistorContext vctx = this.stack.peek();
+        VisitorContext vctx = this.stack.peek();
         boolean found = false;
         for (String column: vctx.selectedColumns.keySet()) {
             if (column.equals(field.getName())) {
@@ -92,7 +95,7 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
     @Override
     public void startVisitObject(Field field, GraphQLFieldDefinition definition, GraphQLObjectType type) {
         SQLDirective sqlDirective = SQLDirective.find(definition.getDirectives());
-        VistorContext vctx = this.stack.peek();
+        VisitorContext vctx = this.stack.peek();
         String aliasLeft = vctx.alias;
 
         // add current object field as selected
@@ -121,7 +124,7 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
             select.where(where);
 
             // next level deep as context
-            vctx = new VistorContext();
+            vctx = new VisitorContext();
             vctx.alias = aliasRight;
             vctx.selectClause = select;
 
@@ -133,7 +136,7 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
 
     @Override
     public void endVisitObject(Field field, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type) {
-        VistorContext vctx = this.stack.pop();
+        VisitorContext vctx = this.stack.pop();
 
         // add orderby
         //List<String> identityColumns = getIdentityColumns(type);
@@ -157,7 +160,7 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
         this.stack.peek().selectedColumns.put(field.getName(), json);
     }
 
-    private void addOrderBy(VistorContext vctx, List<String> identityColumns) {
+    private void addOrderBy(VisitorContext vctx, List<String> identityColumns) {
         List<org.jooq.Field<?>> orderby = new ArrayList<>();
         identityColumns.stream().forEach(col -> {
             org.jooq.Field<?> f = field(name(vctx.alias, col));
@@ -182,7 +185,7 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
         select.from(table);
 
         // put the current table on stack
-        VistorContext vctx = new VistorContext();
+        VisitorContext vctx = new VisitorContext();
         vctx.alias = alias;
         vctx.selectClause = select;
 
@@ -191,7 +194,7 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
 
     @Override
     public void endVisitRootObject(Field rootField, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type) {
-        VistorContext vctx = this.stack.peek();
+        VisitorContext vctx = this.stack.peek();
 
         // add orderby
         List<String> identityColumns = getIdentityColumns(type);
@@ -245,13 +248,13 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
     }
 
     public String getSQL() {
-        VistorContext vctx = this.stack.peek();
+        VisitorContext vctx = this.stack.peek();
         return vctx.selectClause.toString();
     }
 
     @Override
     public void visitArgument(Field field, GraphQLFieldDefinition definition, GraphQLObjectType type, Argument arg) {
-        VistorContext vctx = this.stack.peek();
+        VisitorContext vctx = this.stack.peek();
 
         String argName = arg.getName();
         Value<?> argValue = arg.getValue();
@@ -260,14 +263,15 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
             //TODO : Walk through page results
         } else if(argName.equals("filter")) {
             LOGGER.debug("Walk through filter results");
-            if(!argValue.getChildren().isEmpty())
+            if(!argValue.getChildren().isEmpty()) {
                 visitFilterInputs(argValue, vctx, null);
+            }
             else
                 throw new RuntimeException("Cannot fetch filter results on " + argValue);
         } else {
             org.jooq.Field<Object> left = field(name(vctx.alias, arg.getName()));
             Condition condition = visitValueType(argValue, left, "eq");
-            visitCondition(null,condition);
+            visitCondition(null,condition, 0);
         }
     }
 
@@ -431,44 +435,88 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
     }
 
 
-    public void visitFilterInputs(Value argumentValue, VistorContext vistorContext, String conditionName) {
+    public void visitFilterInputs(Value argumentValue, VisitorContext visitorContext, String conditionName) {
         org.jooq.Field<Object> left = null;
         for (ObjectField field : ((ObjectValue) argumentValue).getObjectFields()) {
             if(!field.getValue().getChildren().isEmpty()) {
                 if(field.getName().equals("and")) {
                     conditionName = field.getName();
+                    visitorContext.size = field.getValue().getChildren().size();
                 } else if(field.getName().equals("or")) {
+                    if(field.getValue().getChildren().size() > 1) {
+                        visitorContext.level = 0;
+                    }
                     conditionName = field.getName();
+                    visitorContext.size = field.getValue().getChildren().size();
                 } else {
-                    left = field(name(vistorContext.alias, field.getName()));
+                    left = field(name(visitorContext.alias, field.getName()));
                     org.jooq.Field<Object> finalLeft = left;
                     String finalConditionName = conditionName;
+                    if( conditionName != null && conditionName.equals("or")) {
+                        if (visitorContext.size > visitorContext.level) {
+                            visitorContext.level++;
+                        } else if(visitorContext.level.equals(visitorContext.size)) {
+                            finalConditionName = null;
+                        }
+                    }
                     for(Object object : field.getValue().getChildren()) {
                         if(object instanceof ObjectField) {
                             Condition condition = visitValueType(((ObjectField) object).getValue(), finalLeft, ((ObjectField) object).getName());
-                            visitCondition(finalConditionName, condition);
+                            visitCondition(finalConditionName, condition, visitorContext.size);
                         }
                     }
                 }
                 if(field.getValue() instanceof ObjectValue)
-                    visitFilterInputs(field.getValue(), vistorContext, conditionName);
+                    visitFilterInputs(field.getValue(), visitorContext, conditionName);
             }
         }
     }
 
-    public void visitCondition(String conditionName, Condition conditionValue) {
-        VistorContext vistorContext = this.stack.peek();
-        if(vistorContext.condition == null) {
-            vistorContext.condition = conditionValue;
+    public void visitCondition(String conditionName, Condition conditionValue, int size) {
+        VisitorContext visitorContext = this.stack.peek();
+
+        if(visitorContext.condition == null) {
+            visitorContext.condition = conditionValue;
+            if(conditionName != null && conditionName.equals("or"))
+                visitorContext.orCounter = true;
         }
         else {
             if(conditionName == null) {
-                vistorContext.condition = vistorContext.condition.and(conditionValue);
+                if(visitorContext.orCounter) {
+                    visitOR(conditionValue);
+                    visitorContext.orCounter = false;
+                } else {
+                    visitAND(conditionValue);
+                }
             } else if(conditionName.equals("and")) {
-                    vistorContext.condition = vistorContext.condition.and(conditionValue);
+                if(visitorContext.orCounter) {
+                    visitOR(conditionValue);
+                    visitorContext.orCounter = false;
+                } else {
+                    visitAND(conditionValue);
+                }
             } else if (conditionName.equals("or")) {
-                vistorContext.condition = vistorContext.condition.or(conditionValue);
+                if(!visitorContext.orCounter) {
+                    visitOR(conditionValue);
+                    visitorContext.orCounter = true;
+                }
+                else if(size > 1 && visitorContext.orCounter) {
+                    visitAND(conditionValue);
+                }
+                else {
+                    visitOR(conditionValue);
+                }
             }
         }
+    }
+
+    public void visitOR (Condition conditionValue) {
+        VisitorContext visitorContext = this.stack.peek();
+        visitorContext.condition = visitorContext.condition.or(conditionValue);
+    }
+
+    public void visitAND (Condition conditionValue) {
+        VisitorContext visitorContext = this.stack.peek();
+        visitorContext.condition = visitorContext.condition.and(conditionValue);
     }
 }
