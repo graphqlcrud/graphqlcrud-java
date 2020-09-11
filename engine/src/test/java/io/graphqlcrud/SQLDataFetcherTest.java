@@ -57,7 +57,7 @@ class SQLDataFetcherTest {
     }
 
     @Test
-    public void testSimplequery() throws Exception {
+    public void testSimpleQuery() throws Exception {
         String query1 = "{\n" +
                 "  customers {\n" +
                 "    SSN\n" +
@@ -124,7 +124,7 @@ class SQLDataFetcherTest {
     }
 
     @Test
-    public void testNestedSibilingQuery() throws Exception {
+    public void testNestedSiblingQuery() throws Exception {
         String query4 = "{\n" +
           "  customers {\n" +
           "    SSN\n" +
@@ -193,6 +193,314 @@ class SQLDataFetcherTest {
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "order by \"g0\".\"SSN\"";
         Assertions.assertEquals(expected,result4);
+    }
+
+    @Test
+    public void simpleFilterQuery() throws Exception {
+        String query = "{\n" +
+                "  customers (filter: {\n" +
+                "    SSN: {\n" +
+                "      ne: \"CST01002\"\n" +
+                "    }\n" +
+                "  }) {\n" +
+                "    SSN\n" +
+                "    FIRSTNAME\n" +
+                "    LASTNAME\n" +
+                "  }\n" +
+                "}";
+        String result = executeSQL(query);
+        String expected = "select\n" +
+                "  \"g0\".\"SSN\" \"SSN\",\n" +
+                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\",\n" +
+                "  \"g0\".\"LASTNAME\" \"LASTNAME\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "where \"g0\".\"SSN\" <> 'CST01002'\n" +
+                "order by \"g0\".\"SSN\"";
+        Assertions.assertEquals(expected,result);
+
+        String query1 = "{\n" +
+                "  accounts (filter: {\n" +
+                "    ACCOUNT_ID: {\n" +
+                "      in: [19980001,19980005,19990009]\n" +
+                "    },\n" +
+                "    and: {\n" +
+                "      STATUS: {\n" +
+                "        eq: \"Personal\"\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }) {\n" +
+                "    ACCOUNT_ID\n" +
+                "    SSN\n" +
+                "    STATUS\n" +
+                "  }\n" +
+                "}";
+        String result1 = executeSQL(query1);
+        String expected1 = "select\n" +
+                "  \"g0\".\"ACCOUNT_ID\" \"ACCOUNT_ID\",\n" +
+                "  \"g0\".\"SSN\" \"SSN\",\n" +
+                "  \"g0\".\"STATUS\" \"STATUS\"\n" +
+                "from PUBLIC.ACCOUNT \"g0\"\n" +
+                "where (\n" +
+                "  \"g0\".\"ACCOUNT_ID\" in (\n" +
+                "    19980001, 19980005, 19990009\n" +
+                "  )\n" +
+                "  and \"g0\".\"STATUS\" = 'Personal'\n" +
+                ")\n" +
+                "order by \"g0\".\"ACCOUNT_ID\"";
+        Assertions.assertEquals(expected1,result1);
+
+        String query2 = "{\n" +
+                "  accounts (filter: {\n" +
+                "    ACCOUNT_ID: {\n" +
+                "      between: [19980001,19980005]\n" +
+                "    }\n" +
+                "  }) {\n" +
+                "    ACCOUNT_ID\n" +
+                "    STATUS\n" +
+                "  }\n" +
+                "}";
+        String result2 = executeSQL(query2);
+        String expected2 = "select\n" +
+                "  \"g0\".\"ACCOUNT_ID\" \"ACCOUNT_ID\",\n" +
+                "  \"g0\".\"STATUS\" \"STATUS\"\n" +
+                "from PUBLIC.ACCOUNT \"g0\"\n" +
+                "where \"g0\".\"ACCOUNT_ID\" between 19980001 and 19980005\n" +
+                "order by \"g0\".\"ACCOUNT_ID\"";
+        Assertions.assertEquals(expected2,result2);
+    }
+
+    @Test
+    public void nestedFilterQuery() throws Exception{
+        String query = "{\n" +
+                "  customers (filter: {\n" +
+                "    LASTNAME: {\n" +
+                "      contains: \"J\"\n" +
+                "    },\n" +
+                "    and: {\n" +
+                "      FIRSTNAME: {\n" +
+                "        startsWith: \"C\"\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }) {\n" +
+                "    SSN\n" +
+                "    accounts {\n" +
+                "      ACCOUNT_ID\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+        String result = executeSQL(query);
+        String expected = "select\n" +
+                "  \"g0\".\"SSN\" \"SSN\",\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(key 'ACCOUNT_ID' value \"g1\".\"ACCOUNT_ID\"))\n" +
+                "    from PUBLIC.ACCOUNT \"g1\"\n" +
+                "    where \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
+                "  ) \"accounts\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "where (\n" +
+                "  \"g0\".\"LASTNAME\" like ('%' || replace(\n" +
+                "    replace(\n" +
+                "      replace(\n" +
+                "        'J',\n" +
+                "        '!',\n" +
+                "        '!!'\n" +
+                "      ),\n" +
+                "      '%',\n" +
+                "      '!%'\n" +
+                "    ),\n" +
+                "    '_',\n" +
+                "    '!_'\n" +
+                "  ) || '%') escape '!'\n" +
+                "  and \"g0\".\"FIRSTNAME\" like (replace(\n" +
+                "    replace(\n" +
+                "      replace(\n" +
+                "        'C',\n" +
+                "        '!',\n" +
+                "        '!!'\n" +
+                "      ),\n" +
+                "      '%',\n" +
+                "      '!%'\n" +
+                "    ),\n" +
+                "    '_',\n" +
+                "    '!_'\n" +
+                "  ) || '%') escape '!'\n" +
+                ")\n" +
+                "order by \"g0\".\"SSN\"";
+        Assertions.assertEquals(expected,result);
+    }
+
+    @Test
+    public void AndOrFilterQuery() throws Exception {
+        String query = "{\n" +
+                "  customers (filter: {\n" +
+                "    LASTNAME: {\n" +
+                "      eq: \"Smith\"\n" +
+                "    },\n" +
+                "    FIRSTNAME: {\n" +
+                "      eq: \"John\"\n" +
+                "    },\n" +
+                "    or: {\n" +
+                "      SSN: {\n" +
+                "        eq: \"CST01002\"\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }) {\n" +
+                "    FIRSTNAME\n" +
+                "    LASTNAME\n" +
+                "    addreses {\n" +
+                "      STATE\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+        String result = executeSQL(query);
+        String expected ="select\n" +
+                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\",\n" +
+                "  \"g0\".\"LASTNAME\" \"LASTNAME\",\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(key 'STATE' value \"g1\".\"STATE\"))\n" +
+                "    from PUBLIC.ADDRESS \"g1\"\n" +
+                "    where \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
+                "  ) \"addreses\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "where (\n" +
+                "  (\n" +
+                "    \"g0\".\"LASTNAME\" = 'Smith'\n" +
+                "    and \"g0\".\"FIRSTNAME\" = 'John'\n" +
+                "  )\n" +
+                "  or \"g0\".\"SSN\" = 'CST01002'\n" +
+                ")\n" +
+                "order by \"g0\".\"SSN\"";
+        Assertions.assertEquals(expected,result);
+
+        String query1 = "{\n" +
+                "  customers (filter: {\n" +
+                "    or: {\n" +
+                "      LASTNAME: {\n" +
+                "        eq: \"Doe\"\n" +
+                "      },\n" +
+                "      FIRSTNAME: {\n" +
+                "        eq: \"John\"\n" +
+                "      }\n" +
+                "    },\n" +
+                "    and: {\n" +
+                "      SSN: {\n" +
+                "        eq: \"CST01002\"\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }) {\n" +
+                "    LASTNAME\n" +
+                "    SSN\n" +
+                "    FIRSTNAME\n" +
+                "  }\n" +
+                "}";
+        String result1 = executeSQL(query1);
+        String expected1 = "select\n" +
+                "  \"g0\".\"LASTNAME\" \"LASTNAME\",\n" +
+                "  \"g0\".\"SSN\" \"SSN\",\n" +
+                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "where (\n" +
+                "  (\n" +
+                "    \"g0\".\"LASTNAME\" = 'Doe'\n" +
+                "    and \"g0\".\"FIRSTNAME\" = 'John'\n" +
+                "  )\n" +
+                "  or \"g0\".\"SSN\" = 'CST01002'\n" +
+                ")\n" +
+                "order by \"g0\".\"SSN\"";
+        Assertions.assertEquals(expected1,result1);
+
+        String query2 = "{\n" +
+                "    customers (filter: {\n" +
+                "    or: {\n" +
+                "      LASTNAME: {\n" +
+                "        eq: \"Doe\"\n" +
+                "      },\n" +
+                "      FIRSTNAME: {\n" +
+                "        eq: \"John\"\n" +
+                "      }\n" +
+                "    },\n" +
+                "    SSN: {\n" +
+                "        eq: \"CST01002\"\n" +
+                "      }\n" +
+                "  }) {\n" +
+                "    LASTNAME\n" +
+                "    SSN\n" +
+                "    FIRSTNAME\n" +
+                "  }\n" +
+                "}";
+        String result2 = executeSQL(query2);
+        String expected2 = "select\n" +
+                "  \"g0\".\"LASTNAME\" \"LASTNAME\",\n" +
+                "  \"g0\".\"SSN\" \"SSN\",\n" +
+                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "where (\n" +
+                "  (\n" +
+                "    \"g0\".\"LASTNAME\" = 'Doe'\n" +
+                "    and \"g0\".\"FIRSTNAME\" = 'John'\n" +
+                "  )\n" +
+                "  or \"g0\".\"SSN\" = 'CST01002'\n" +
+                ")\n" +
+                "order by \"g0\".\"SSN\"";
+        Assertions.assertEquals(expected2,result2);
+    }
+
+    @Test
+    public void deepNestedFilterQuery() throws Exception {
+        String query = "{\n" +
+                "  customers (filter: {\n" +
+                "    or: {\n" +
+                "      LASTNAME: {\n" +
+                "        eq: \"Doe\"\n" +
+                "      },\n" +
+                "      FIRSTNAME: {\n" +
+                "        eq: \"John\"\n" +
+                "      }\n" +
+                "    },\n" +
+                "    and: {\n" +
+                "      SSN: {\n" +
+                "        eq: \"CST01002\"\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }) {\n" +
+                "    LASTNAME\n" +
+                "    SSN\n" +
+                "    FIRSTNAME\n" +
+                "    accounts (filter: {\n" +
+                "      and: {\n" +
+                "        ACCOUNT_ID: {\n" +
+                "          eq: 19980001\n" +
+                "        }\n" +
+                "      }\n" +
+                "    }) {\n" +
+                "      ACCOUNT_ID\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+        String result = executeSQL(query);
+        String expected = "select\n" +
+                "  \"g0\".\"LASTNAME\" \"LASTNAME\",\n" +
+                "  \"g0\".\"SSN\" \"SSN\",\n" +
+                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\",\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(key 'ACCOUNT_ID' value \"g1\".\"ACCOUNT_ID\"))\n" +
+                "    from PUBLIC.ACCOUNT \"g1\"\n" +
+                "    where (\n" +
+                "      \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
+                "      and \"g1\".\"ACCOUNT_ID\" = 19980001\n" +
+                "    )\n" +
+                "  ) \"accounts\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "where (\n" +
+                "  (\n" +
+                "    \"g0\".\"LASTNAME\" = 'Doe'\n" +
+                "    and \"g0\".\"FIRSTNAME\" = 'John'\n" +
+                "  )\n" +
+                "  or \"g0\".\"SSN\" = 'CST01002'\n" +
+                ")\n" +
+                "order by \"g0\".\"SSN\"";
+        Assertions.assertEquals(expected,result);
+
     }
 
     @Test
