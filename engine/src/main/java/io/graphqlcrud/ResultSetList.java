@@ -64,7 +64,7 @@ class ResultSetList extends AbstractList<Object> {
                     ResultSetList.this.advanceCursor = true;
                     return hasNext;
                 } catch (SQLException e) {
-                    throw new RuntimeException("Failed to walk the results");
+                    throw new RuntimeException("Failed to walk the results", e);
                 }
             }
             @Override
