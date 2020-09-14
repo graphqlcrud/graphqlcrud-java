@@ -53,3 +53,7 @@ Temporary Items
 .classpath
 .project
 .settings/
+
+#IntelliJ IDEA
+*.iml
+.idea
