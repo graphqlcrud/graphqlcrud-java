@@ -217,7 +217,10 @@ class SQLDataFetcherTest {
                 "where \"g0\".\"SSN\" <> 'CST01002'\n" +
                 "order by \"g0\".\"SSN\"";
         Assertions.assertEquals(expected,result);
+    }
 
+    @Test
+    public void simpleFilterQuery1() throws Exception {
         String query1 = "{\n" +
                 "  accounts (filter: {\n" +
                 "    ACCOUNT_ID: {\n" +
@@ -248,7 +251,10 @@ class SQLDataFetcherTest {
                 ")\n" +
                 "order by \"g0\".\"ACCOUNT_ID\"";
         Assertions.assertEquals(expected1,result1);
+    }
 
+    @Test
+    public void simpleFilterQuery3() throws Exception {
         String query2 = "{\n" +
                 "  accounts (filter: {\n" +
                 "    ACCOUNT_ID: {\n" +
@@ -371,7 +377,10 @@ class SQLDataFetcherTest {
                 ")\n" +
                 "order by \"g0\".\"SSN\"";
         Assertions.assertEquals(expected,result);
+    }
 
+  @Test
+   public void AndOrFilterQuery2() throws Exception {
         String query1 = "{\n" +
                 "  customers (filter: {\n" +
                 "    or: {\n" +
@@ -408,7 +417,50 @@ class SQLDataFetcherTest {
                 ")\n" +
                 "order by \"g0\".\"SSN\"";
         Assertions.assertEquals(expected1,result1);
+  }
 
+  @Test
+  public void testAndOrFilterQuery4() throws Exception {
+      String query1 = "{\n" +
+              "  customers (filter: {\n" +
+              "    and: {\n" +
+              "      SSN: {\n" +
+              "        eq: \"CST01002\"\n" +
+              "      }\n" +
+              "    },\n" +
+              "    or: {\n" +
+              "      LASTNAME: {\n" +
+              "        eq: \"Doe\"\n" +
+              "      },\n" +
+              "      FIRSTNAME: {\n" +
+              "        eq: \"John\"\n" +
+              "      }\n" +
+              "    }\n" +
+              "  }) {\n" +
+              "    LASTNAME\n" +
+              "    SSN\n" +
+              "    FIRSTNAME\n" +
+              "  }\n" +
+              "}";
+      String result1 = executeSQL(query1);
+      String expected1 = "select\n" +
+              "  \"g0\".\"LASTNAME\" \"LASTNAME\",\n" +
+              "  \"g0\".\"SSN\" \"SSN\",\n" +
+              "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\"\n" +
+              "from PUBLIC.CUSTOMER \"g0\"\n" +
+              "where (\n" +
+              "  \"g0\".\"SSN\" = 'CST01002'\n" +
+              "  or (\n" +
+              "    \"g0\".\"LASTNAME\" = 'Doe'\n" +
+              "    and \"g0\".\"FIRSTNAME\" = 'John'\n" +
+              "  )\n" +
+              ")\n" +
+              "order by \"g0\".\"SSN\"";
+      Assertions.assertEquals(expected1,result1);
+  }
+
+  @Test
+  public void AndOrFilterQuery3() throws Exception {
         String query2 = "{\n" +
                 "    customers (filter: {\n" +
                 "    or: {\n" +
@@ -429,17 +481,19 @@ class SQLDataFetcherTest {
                 "  }\n" +
                 "}";
         String result2 = executeSQL(query2);
+        // since we parse the naked values first those conditions always show up first
         String expected2 = "select\n" +
                 "  \"g0\".\"LASTNAME\" \"LASTNAME\",\n" +
                 "  \"g0\".\"SSN\" \"SSN\",\n" +
                 "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "where (\n" +
-                "  (\n" +
+                "  \"g0\".\"SSN\" = 'CST01002'\n" +
+                "  or (\n" +
                 "    \"g0\".\"LASTNAME\" = 'Doe'\n" +
                 "    and \"g0\".\"FIRSTNAME\" = 'John'\n" +
                 "  )\n" +
-                "  or \"g0\".\"SSN\" = 'CST01002'\n" +
+
                 ")\n" +
                 "order by \"g0\".\"SSN\"";
         Assertions.assertEquals(expected2,result2);
@@ -500,7 +554,64 @@ class SQLDataFetcherTest {
                 ")\n" +
                 "order by \"g0\".\"SSN\"";
         Assertions.assertEquals(expected,result);
+    }
 
+    @Test
+    public void notQuery() throws Exception {
+        String query = "{\n" +
+                "  customers (filter: {\n" +
+                "    not: {\n" +
+                "      SSN: {\n" +
+                "        ne: \"CST01002\"\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }) {\n" +
+                "    SSN\n" +
+                "    FIRSTNAME\n" +
+                "    LASTNAME\n" +
+                "  }\n" +
+                "}";
+        String result = executeSQL(query);
+        String expected = "select\n" +
+                "  \"g0\".\"SSN\" \"SSN\",\n" +
+                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\",\n" +
+                "  \"g0\".\"LASTNAME\" \"LASTNAME\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "where not (\"g0\".\"SSN\" <> 'CST01002')\n" +
+                "order by \"g0\".\"SSN\"";
+        Assertions.assertEquals(expected,result);
+    }
+
+    @Test
+    public void notQuery2() throws Exception {
+        String query = "{\n" +
+                "  customers (filter: {\n" +
+                "    not: {\n" +
+                "      SSN: {\n" +
+                "        eq: \"CST01002\"\n" +
+                "      }\n" +
+                "    }\n" +
+                "    SSN: {\n" +
+                "      eq: \"CST01004\"\n" +
+                "    }\n" +
+                "  }) {\n" +
+                "    SSN\n" +
+                "    FIRSTNAME\n" +
+                "    LASTNAME\n" +
+                "  }\n" +
+                "}";
+        String result = executeSQL(query);
+        String expected = "select\n" +
+                "  \"g0\".\"SSN\" \"SSN\",\n" +
+                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\",\n" +
+                "  \"g0\".\"LASTNAME\" \"LASTNAME\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "where (\n" +
+                "  \"g0\".\"SSN\" = 'CST01004'\n" +
+                "  and not (\"g0\".\"SSN\" = 'CST01002')\n" +
+                ")\n" +
+                "order by \"g0\".\"SSN\"";
+        Assertions.assertEquals(expected,result);
     }
 
     @Test
