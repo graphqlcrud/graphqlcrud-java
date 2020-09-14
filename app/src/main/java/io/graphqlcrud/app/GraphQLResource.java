@@ -48,16 +48,18 @@ import io.graphqlcrud.model.Schema;
 public class GraphQLResource {
     private static final Logger LOGGER = LoggerFactory.getLogger(GraphQLResource.class);
 
-    @Inject
     private AgroalDataSource datasource;
-
     private GraphQLSchema schema;
-
-    @ConfigProperty(name = "graphqlcrud.datasource.schema")
     private String dbSchemaName;
-
-    @ConfigProperty(name = "graphqlcrud.datasource.dialect")
     private String dialect;
+
+
+    @Inject
+    public GraphQLResource(AgroalDataSource datasource, @ConfigProperty(name = "graphqlcrud.datasource.schema") String dbSchemaName,  @ConfigProperty(name = "graphqlcrud.datasource.dialect") String dialect) {
+        this.datasource = datasource;
+        this.dbSchemaName = dbSchemaName;
+        this.dialect = dialect;
+    }
 
     @POST
     public Map<String, Object> graphql(String query) throws Exception {
