@@ -16,8 +16,6 @@ mvn clean package
 The default application requires a Postgresql database. If you do not have one, you start a docker container for same by executing 
 
 ```
-docker pull postgres
-
 docker run -p 5432:5432 --name sampledb -e POSTGRES_DB=sampledb \
   -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password \
   -d postgres -c log_statement=all
