@@ -61,10 +61,18 @@ public class GraphQLResource {
         this.dialect = dialect;
     }
 
+   
+    void init(@Observes StartupEvent event) throws SQLException {
+        try (Connection conn = this.datasource.getConnection()) {
+            Schema dbSchema = DatabaseSchemaBuilder.getSchema(conn, this.dbSchemaName);
+            this.schema = GraphQLSchemaBuilder.getSchema(dbSchema);
+            SchemaPrinter sp = new SchemaPrinter();
+            LOGGER.info(sp.print(this.schema));
+        }
+    }
+
     @POST
     public Map<String, Object> graphql(String query) throws Exception {
-        GraphQLSchema schema = buildSchema();
-
         QueryParameters qp = QueryParameters.from(query);
 
         ExecutionInput.Builder executionInput = ExecutionInput.newExecutionInput()
@@ -73,7 +81,7 @@ public class GraphQLResource {
                 .variables(qp.getVariables());
 
         // pass the datasource around
-        try(SQLContext ctx = new SQLContext(this.datasource.getConnection())){
+        try (SQLContext ctx = new SQLContext(this.datasource.getConnection())) {
             ctx.setDialect(this.dialect);
             executionInput.context(ctx);
 
@@ -85,17 +93,5 @@ public class GraphQLResource {
             ExecutionResult executionResult = graphQL.execute(executionInput.build());
             return executionResult.toSpecification();
         }
-    }
-
-    private GraphQLSchema buildSchema() throws SQLException {
-        if (this.schema == null) {
-            try(Connection conn = this.datasource.getConnection()){
-                Schema dbSchema = DatabaseSchemaBuilder.getSchema(conn, this.dbSchemaName);
-               this.schema = GraphQLSchemaBuilder.getSchema(dbSchema);
-               SchemaPrinter sp = new SchemaPrinter();
-               LOGGER.info(sp.print(this.schema));
-            }
-        }
-        return this.schema;
     }
 }
