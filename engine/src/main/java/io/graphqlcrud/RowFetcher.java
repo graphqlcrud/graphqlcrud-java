@@ -15,6 +15,7 @@
  */
 package io.graphqlcrud;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -51,11 +52,20 @@ public class RowFetcher implements DataFetcher<Object> {
         if (sqlDirective != null && rs != null){
             GraphQLFieldDefinition definition = environment.getFieldDefinition();
             GraphQLType type = definition.getType();
-            List<?> node = this.mapper.readValue(rs.getBytes(f.getName()), List.class);
-            if (type instanceof GraphQLObjectType) {
-                return node.get(0);
+            byte[] data = rs.getBytes(f.getName());
+            if (data != null) {
+                List<?> node = this.mapper.readValue(data, List.class);
+                if (type instanceof GraphQLObjectType) {
+                    return node.get(0);
+                }
+                return node;
+            } else {
+                if (type instanceof GraphQLObjectType) {
+                    return null;
+                } else {
+                    return Collections.emptyList();
+                }
             }
-            return node;
         }
         if (rs != null) {
             return rs.getObject(f.getName());
