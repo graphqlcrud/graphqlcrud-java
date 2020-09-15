@@ -705,7 +705,7 @@ class SQLDataFetcherTest {
     }
 
     @Test
-    public void deepNestedQuery2() throws Exception {
+    public void deepNestedFilterQuery2() throws Exception {
         String query = "{\n" +
                 "  accounts (filter: {\n" +
                 "    ACCOUNT_ID: {\n" +
@@ -763,6 +763,306 @@ class SQLDataFetcherTest {
         Assertions.assertEquals(expected,result);
     }
 
+    @Test
+    public void deepNestedFilterQuery3() throws Exception {
+        String query = "{\n" +
+                "  customers {\n" +
+                "    addreses (filter: {\n" +
+                "      or: {\n" +
+                "        STATE : {\n" +
+                "          eq: \"Ohio\"\n" +
+                "        },\n" +
+                "        ZIPCODE: {\n" +
+                "          eq: \"45232\"\n" +
+                "        }\n" +
+                "      },\n" +
+                "     and: {\n" +
+                "       STATE: {\n" +
+                "        eq: \"New York\"\n" +
+                "      }\n" +
+                "    }\n" +
+                "    })  {\n" +
+                "      STATE\n" +
+                "      ST_ADDRESS\n" +
+                "      ZIPCODE\n" +
+                "    }\n" +
+                "    accounts (filter: {\n" +
+                "      TYPE: {\n" +
+                "        eq: \"Active\"\n" +
+                "      }\n" +
+                "    }) {\n" +
+                "      ACCOUNT_ID\n" +
+                "      TYPE\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+        String result = executeSQL(query);
+        String expected = "select\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(\n" +
+                "      key 'STATE' value \"g1\".\"STATE\",\n" +
+                "      key 'ST_ADDRESS' value \"g1\".\"ST_ADDRESS\",\n" +
+                "      key 'ZIPCODE' value \"g1\".\"ZIPCODE\"\n" +
+                "    ))\n" +
+                "    from PUBLIC.ADDRESS \"g1\"\n" +
+                "    where (\n" +
+                "      \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
+                "      and (\n" +
+                "        (\n" +
+                "          \"g1\".\"STATE\" = 'Ohio'\n" +
+                "          and \"g1\".\"ZIPCODE\" = '45232'\n" +
+                "        )\n" +
+                "        or \"g1\".\"STATE\" = 'New York'\n" +
+                "      )\n" +
+                "    )\n" +
+                "  ) \"addreses\",\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(\n" +
+                "      key 'ACCOUNT_ID' value \"g2\".\"ACCOUNT_ID\",\n" +
+                "      key 'TYPE' value \"g2\".\"TYPE\"\n" +
+                "    ))\n" +
+                "    from PUBLIC.ACCOUNT \"g2\"\n" +
+                "    where (\n" +
+                "      \"g0\".\"SSN\" = \"g2\".\"SSN\"\n" +
+                "      and \"g2\".\"TYPE\" = 'Active'\n" +
+                "    )\n" +
+                "  ) \"accounts\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "order by \"g0\".\"SSN\"";
+        Assertions.assertEquals(expected,result);
+    }
+
+    @Test
+    public void deepNestedFilterQuery4() throws Exception {
+        String query = "{\n" +
+                "  products (filter: {\n" +
+                "   SYMBOL: {\n" +
+                "    startsWith: \"D\"\n" +
+                "  }\n" +
+                "  }) {\n" +
+                "    holdinges (filter: {\n" +
+                "      PRODUCT_ID: {\n" +
+                "        eq: 1008\n" +
+                "      },\n" +
+                "      and: {\n" +
+                "        TRANSACTION_ID: {\n" +
+                "          eq:10\n" +
+                "        }\n" +
+                "      },\n" +
+                "      or: {\n" +
+                "        TRANSACTION_ID: {\n" +
+                "          eq: 33\n" +
+                "        }\n" +
+                "      }\n" +
+                "    }) {\n" +
+                "      PRODUCT_ID\n" +
+                "      ACCOUNT_ID\n" +
+                "      SHARES_COUNT\n" +
+                "      TRANSACTION_ID\n" +
+                "    }\n" +
+                "    COMPANY_NAME\n" +
+                "    SYMBOL\n" +
+                "  }\n" +
+                "}";
+        String result = executeSQL(query);
+        String expected = "select\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(\n" +
+                "      key 'PRODUCT_ID' value \"g1\".\"PRODUCT_ID\",\n" +
+                "      key 'ACCOUNT_ID' value \"g1\".\"ACCOUNT_ID\",\n" +
+                "      key 'SHARES_COUNT' value \"g1\".\"SHARES_COUNT\",\n" +
+                "      key 'TRANSACTION_ID' value \"g1\".\"TRANSACTION_ID\"\n" +
+                "    ))\n" +
+                "    from PUBLIC.HOLDINGS \"g1\"\n" +
+                "    where (\n" +
+                "      \"g0\".\"ID\" = \"g1\".\"PRODUCT_ID\"\n" +
+                "      and (\n" +
+                "        (\n" +
+                "          \"g1\".\"PRODUCT_ID\" = 1008\n" +
+                "          and \"g1\".\"TRANSACTION_ID\" = 10\n" +
+                "        )\n" +
+                "        or \"g1\".\"TRANSACTION_ID\" = 33\n" +
+                "      )\n" +
+                "    )\n" +
+                "  ) \"holdinges\",\n" +
+                "  \"g0\".\"COMPANY_NAME\" \"COMPANY_NAME\",\n" +
+                "  \"g0\".\"SYMBOL\" \"SYMBOL\"\n" +
+                "from PUBLIC.PRODUCT \"g0\"\n" +
+                "where \"g0\".\"SYMBOL\" like (replace(\n" +
+                "  replace(\n" +
+                "    replace(\n" +
+                "      'D',\n" +
+                "      '!',\n" +
+                "      '!!'\n" +
+                "    ),\n" +
+                "    '%',\n" +
+                "    '!%'\n" +
+                "  ),\n" +
+                "  '_',\n" +
+                "  '!_'\n" +
+                ") || '%') escape '!'\n" +
+                "order by \"g0\".\"ID\"";
+        Assertions.assertEquals(expected,result);
+    }
+
+    @Test
+    public void deepNestedFilterQuery5() throws Exception {
+        String query = "{\n" +
+                "  customers (filter: {\n" +
+                "    FIRSTNAME: {\n" +
+                "      startsWith: \"J\"\n" +
+                "    },\n" +
+                "    not: {\n" +
+                "      LASTNAME: {\n" +
+                "        eq: \"Drew\"\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }) {\n" +
+                "    addreses (filter: {\n" +
+                "      STATE: {\n" +
+                "        ne: \"Texas\"\n" +
+                "      },\n" +
+                "      or: {\n" +
+                "        STATE: {\n" +
+                "          eq: \"New York\"\n" +
+                "        }\n" +
+                "      },\n" +
+                "      not: {\n" +
+                "        ZIPCODE: {\n" +
+                "          eq: \"19154\"\n" +
+                "        }\n" +
+                "      }\n" +
+                "    }) {\n" +
+                "      STATE\n" +
+                "      ST_ADDRESS\n" +
+                "      ZIPCODE\n" +
+                "    }\n" +
+                "    accounts (filter: {\n" +
+                "      TYPE: {\n" +
+                "        eq: \"Active\"\n" +
+                "      }\n" +
+                "    }) {\n" +
+                "      ACCOUNT_ID\n" +
+                "      TYPE\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+        String result = executeSQL(query);
+        String expected = "select\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(\n" +
+                "      key 'STATE' value \"g1\".\"STATE\",\n" +
+                "      key 'ST_ADDRESS' value \"g1\".\"ST_ADDRESS\",\n" +
+                "      key 'ZIPCODE' value \"g1\".\"ZIPCODE\"\n" +
+                "    ))\n" +
+                "    from PUBLIC.ADDRESS \"g1\"\n" +
+                "    where (\n" +
+                "      \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
+                "      and (\n" +
+                "        \"g1\".\"STATE\" <> 'Texas'\n" +
+                "        or \"g1\".\"STATE\" = 'New York'\n" +
+                "        or not (\"g1\".\"ZIPCODE\" = '19154')\n" +
+                "      )\n" +
+                "    )\n" +
+                "  ) \"addreses\",\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(\n" +
+                "      key 'ACCOUNT_ID' value \"g2\".\"ACCOUNT_ID\",\n" +
+                "      key 'TYPE' value \"g2\".\"TYPE\"\n" +
+                "    ))\n" +
+                "    from PUBLIC.ACCOUNT \"g2\"\n" +
+                "    where (\n" +
+                "      \"g0\".\"SSN\" = \"g2\".\"SSN\"\n" +
+                "      and \"g2\".\"TYPE\" = 'Active'\n" +
+                "    )\n" +
+                "  ) \"accounts\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "where (\n" +
+                "  \"g0\".\"FIRSTNAME\" like (replace(\n" +
+                "    replace(\n" +
+                "      replace(\n" +
+                "        'J',\n" +
+                "        '!',\n" +
+                "        '!!'\n" +
+                "      ),\n" +
+                "      '%',\n" +
+                "      '!%'\n" +
+                "    ),\n" +
+                "    '_',\n" +
+                "    '!_'\n" +
+                "  ) || '%') escape '!'\n" +
+                "  and not (\"g0\".\"LASTNAME\" = 'Drew')\n" +
+                ")\n" +
+                "order by \"g0\".\"SSN\"";
+        Assertions.assertEquals(expected,result);
+    }
+
+    @Test
+    public void deepNestedFilterQuery6() throws Exception {
+        String query = "{\n" +
+                "  customers {\n" +
+                "    addreses (filter: {\n" +
+                "      or: {\n" +
+                "        STATE : {\n" +
+                "          eq: \"Ohio\"\n" +
+                "        },\n" +
+                "        ZIPCODE: {\n" +
+                "          eq: \"45232\"\n" +
+                "        }\n" +
+                "      },\n" +
+                "      STATE: {\n" +
+                "        eq: \"New York\"\n" +
+                "      }\n" +
+                "    })  {\n" +
+                "      STATE\n" +
+                "      ST_ADDRESS\n" +
+                "      ZIPCODE\n" +
+                "    }\n" +
+                "    accounts (filter: {\n" +
+                "      TYPE: {\n" +
+                "        eq: \"Active\"\n" +
+                "      }\n" +
+                "    }) {\n" +
+                "      ACCOUNT_ID\n" +
+                "      TYPE\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+        String result = executeSQL(query);
+        String expected = "select\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(\n" +
+                "      key 'STATE' value \"g1\".\"STATE\",\n" +
+                "      key 'ST_ADDRESS' value \"g1\".\"ST_ADDRESS\",\n" +
+                "      key 'ZIPCODE' value \"g1\".\"ZIPCODE\"\n" +
+                "    ))\n" +
+                "    from PUBLIC.ADDRESS \"g1\"\n" +
+                "    where (\n" +
+                "      \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
+                "      and (\n" +
+                "        \"g1\".\"STATE\" = 'New York'\n" +
+                "        or (\n" +
+                "          \"g1\".\"STATE\" = 'Ohio'\n" +
+                "          and \"g1\".\"ZIPCODE\" = '45232'\n" +
+                "        )\n" +
+                "      )\n" +
+                "    )\n" +
+                "  ) \"addreses\",\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(\n" +
+                "      key 'ACCOUNT_ID' value \"g2\".\"ACCOUNT_ID\",\n" +
+                "      key 'TYPE' value \"g2\".\"TYPE\"\n" +
+                "    ))\n" +
+                "    from PUBLIC.ACCOUNT \"g2\"\n" +
+                "    where (\n" +
+                "      \"g0\".\"SSN\" = \"g2\".\"SSN\"\n" +
+                "      and \"g2\".\"TYPE\" = 'Active'\n" +
+                "    )\n" +
+                "  ) \"accounts\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "order by \"g0\".\"SSN\"";
+        Assertions.assertEquals(expected,result);
+    }
 
     @Test
     public void notQuery() throws Exception {
