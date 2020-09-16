@@ -47,7 +47,7 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
         }
         ctx.setStmt(stmt);
         ctx.setResultSet(rs);
-        return new ResultSetList(new ResultSetWrapper(rs), true);
+        return new ResultSetList(rs, true);
     }
 
     private String buildSQL(DataFetchingEnvironment environment) {

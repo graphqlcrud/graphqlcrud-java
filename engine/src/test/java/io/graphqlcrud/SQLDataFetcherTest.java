@@ -409,11 +409,11 @@ class SQLDataFetcherTest {
                 "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "where (\n" +
-                "  (\n" +
+                "  \"g0\".\"SSN\" = 'CST01002'\n" +
+                "  or (\n" +
                 "    \"g0\".\"LASTNAME\" = 'Doe'\n" +
                 "    and \"g0\".\"FIRSTNAME\" = 'John'\n" +
                 "  )\n" +
-                "  or \"g0\".\"SSN\" = 'CST01002'\n" +
                 ")\n" +
                 "order by \"g0\".\"SSN\"";
         Assertions.assertEquals(expected1,result1);
@@ -694,11 +694,12 @@ class SQLDataFetcherTest {
                 "  ) \"accounts\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "where (\n" +
-                "  (\n" +
+                "  \"g0\".\"SSN\" = 'CST01002'\n" +
+                "  or (\n" +
                 "    \"g0\".\"LASTNAME\" = 'Doe'\n" +
                 "    and \"g0\".\"FIRSTNAME\" = 'John'\n" +
                 "  )\n" +
-                "  or \"g0\".\"SSN\" = 'CST01002'\n" +
+
                 ")\n" +
                 "order by \"g0\".\"SSN\"";
         Assertions.assertEquals(expected,result);
@@ -808,11 +809,11 @@ class SQLDataFetcherTest {
                 "    where (\n" +
                 "      \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
                 "      and (\n" +
-                "        (\n" +
+                "        \"g1\".\"STATE\" = 'New York'\n" +
+                "        or (\n" +
                 "          \"g1\".\"STATE\" = 'Ohio'\n" +
                 "          and \"g1\".\"ZIPCODE\" = '45232'\n" +
                 "        )\n" +
-                "        or \"g1\".\"STATE\" = 'New York'\n" +
                 "      )\n" +
                 "    )\n" +
                 "  ) \"addreses\",\n" +
@@ -959,9 +960,11 @@ class SQLDataFetcherTest {
                 "    where (\n" +
                 "      \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
                 "      and (\n" +
-                "        \"g1\".\"STATE\" <> 'Texas'\n" +
+                "        (\n" +
+                "          \"g1\".\"STATE\" <> 'Texas'\n" +
+                "          and not (\"g1\".\"ZIPCODE\" = '19154')\n" +
+                "        )\n" +
                 "        or \"g1\".\"STATE\" = 'New York'\n" +
-                "        or not (\"g1\".\"ZIPCODE\" = '19154')\n" +
                 "      )\n" +
                 "    )\n" +
                 "  ) \"addreses\",\n" +
