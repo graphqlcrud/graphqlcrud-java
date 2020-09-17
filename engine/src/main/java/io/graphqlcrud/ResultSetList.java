@@ -15,17 +15,18 @@
  */
 package io.graphqlcrud;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.AbstractList;
 import java.util.Iterator;
 
 class ResultSetList extends AbstractList<Object> {
-    private ResultSetWrapper rs;
+    private ResultSet rs;
     private Iterator<Object> itr;
     private Object current;
     private boolean advanceCursor;
 
-    ResultSetList(ResultSetWrapper rs, boolean advanceCursor){
+    ResultSetList(ResultSet rs, boolean advanceCursor){
         this.rs = rs;
         this.advanceCursor = advanceCursor;
     }

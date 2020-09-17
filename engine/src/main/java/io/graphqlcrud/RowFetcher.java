@@ -15,6 +15,7 @@
  */
 package io.graphqlcrud;
 
+import java.sql.ResultSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -38,11 +39,11 @@ public class RowFetcher implements DataFetcher<Object> {
         if (source == null) {
             return null;
         }
-        ResultSetWrapper rs = null;
+        ResultSet rs = null;
         if (source instanceof ResultSetList) {
-            rs = (ResultSetWrapper)((ResultSetList) source).get();
-        } else if (source instanceof ResultSetWrapper){
-            rs = (ResultSetWrapper)source;
+            rs = (ResultSet)((ResultSetList) source).get();
+        } else if (source instanceof ResultSet){
+            rs = (ResultSet)source;
         }
         Field f = environment.getField();
         String colName = SQLQueryBuilderVisitor.fieldName(f);

@@ -60,7 +60,7 @@ public class FilterScanner<C> {
             }
         }
 
-        // now walk only and/or/not
+        // now walk only and/not first because both are "and"
         for (ObjectField field : filterInput.getObjectFields()) {
             if (field.getChildren().isEmpty()) {
                 continue;
@@ -73,14 +73,6 @@ public class FilterScanner<C> {
                     C condition = applyClause(prevCondition.condition, prevCondition.clause, w.condition);
                     prevCondition = new WrappedCondition(condition, w.clause);
                 }
-            } else if (field.getName().equals("or")) {
-                WrappedCondition w = scan((ObjectValue)field.getValue(), Clause.or);
-                if (prevCondition == null) {
-                    prevCondition = w;
-                } else {
-                    C condition = applyClause(prevCondition.condition, Clause.or, w.condition);
-                    prevCondition = new WrappedCondition(condition, w.clause);
-                }
             } else if (field.getName().equals("not")) {
                 WrappedCondition w = scan((ObjectValue)field.getValue(), Clause.and);
                 if (prevCondition == null) {
@@ -90,9 +82,21 @@ public class FilterScanner<C> {
                     C condition = applyClause(prevCondition.condition, prevCondition.clause, this.visitor.not(w.condition));
                     prevCondition = new WrappedCondition(condition, Clause.and);
                 }
-            } else {
-                // we should have already handled this case above
-                // ignore
+            }
+        }
+        // walk the or conditions
+        for (ObjectField field : filterInput.getObjectFields()) {
+            if (field.getChildren().isEmpty()) {
+                continue;
+            }
+            if (field.getName().equals("or")) {
+                WrappedCondition w = scan((ObjectValue)field.getValue(), Clause.or);
+                if (prevCondition == null) {
+                    prevCondition = w;
+                } else {
+                    C condition = applyClause(prevCondition.condition, Clause.or, w.condition);
+                    prevCondition = new WrappedCondition(condition, w.clause);
+                }
             }
         }
         return prevCondition;
