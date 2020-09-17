@@ -102,6 +102,9 @@ public class SQLFilterBuilder implements FilterBuilder<Condition> {
             case "endsWith":
                 c = left.endsWith(value);
                 break;
+            case "matchesPattern":
+                c = left.likeRegex(value);
+                break;
             default:
                 throw new RuntimeException("Unexpected value: " + conditionName);
         }

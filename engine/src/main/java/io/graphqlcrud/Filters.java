@@ -42,8 +42,8 @@ public class Filters {
                 .field(GraphQLInputObjectField.newInputObjectField().name("in").type(GraphQLList.list(GraphQLNonNull.nonNull(Scalars.GraphQLString))))
                 .field(GraphQLInputObjectField.newInputObjectField().name("contains").type(Scalars.GraphQLString))
                 .field(GraphQLInputObjectField.newInputObjectField().name("startsWith").type(Scalars.GraphQLString))
-                .field(GraphQLInputObjectField.newInputObjectField().name("endsWith").type(Scalars.GraphQLString));
-
+                .field(GraphQLInputObjectField.newInputObjectField().name("endsWith").type(Scalars.GraphQLString))
+                .field(GraphQLInputObjectField.newInputObjectField().name("matchesPattern").type(Scalars.GraphQLString));
     }
 
     public static GraphQLInputObjectType.Builder idInputBuilder() {
