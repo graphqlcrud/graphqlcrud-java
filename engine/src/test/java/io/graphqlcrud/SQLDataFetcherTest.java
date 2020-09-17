@@ -276,6 +276,36 @@ class SQLDataFetcherTest {
     }
 
     @Test
+    public void simpleFilterQuery4() throws Exception {
+        String query = "{\n" +
+                "  customers (filter: {\n" +
+                "   FIRSTNAME: {\n" +
+                "    matchesPattern: \"James\"\n" +
+                "  }, \n" +
+                "    not: {\n" +
+                "      LASTNAME:{\n" +
+                "        matchesPattern: \"Corby\"\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }) {\n" +
+                "    LASTNAME\n" +
+                "    FIRSTNAME\n" +
+                "  }\n" +
+                "}";
+        String result = executeSQL(query);
+        String expected = "select\n" +
+                "  \"g0\".\"LASTNAME\" \"LASTNAME\",\n" +
+                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "where (\n" +
+                "  (\"g0\".\"FIRSTNAME\" like_regex 'James')\n" +
+                "  and not ((\"g0\".\"LASTNAME\" like_regex 'Corby'))\n" +
+                ")\n" +
+                "order by \"g0\".\"SSN\"";
+        Assertions.assertEquals(expected,result);
+    }
+
+    @Test
     public void nestedFilterQuery() throws Exception{
         String query = "{\n" +
                 "  customers (filter: {\n" +
