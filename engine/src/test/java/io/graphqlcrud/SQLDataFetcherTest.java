@@ -115,8 +115,12 @@ class SQLDataFetcherTest {
                 "  \"g0\".\"SSN\" \"SSN\",\n" +
                 "  (\n" +
                 "    select json_arrayagg(json_object(key 'id' value \"g1\".\"ACCOUNT_ID\"))\n" +
-                "    from PUBLIC.ACCOUNT \"g1\"\n" +
-                "    where \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ACCOUNT\n" +
+                "      where \"g0\".\"SSN\" = \"SSN\"\n" +
+                "      order by \"ACCOUNT_ID\"\n" +
+                "    ) \"g1\"\n" +
                 "  ) \"accounts\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "order by \"g0\".\"SSN\"";
@@ -145,13 +149,20 @@ class SQLDataFetcherTest {
                 "      key 'CITY' value \"g1\".\"CITY\",\n" +
                 "      key 'STATE' value \"g1\".\"STATE\"\n" +
                 "    ))\n" +
-                "    from PUBLIC.ADDRESS \"g1\"\n" +
-                "    where \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ADDRESS\n" +
+                "      where \"g0\".\"SSN\" = \"SSN\"\n" +
+                "    ) \"g1\"\n" +
                 "  ) \"addreses\",\n" +
                 "  (\n" +
                 "    select json_arrayagg(json_object(key 'id' value \"g2\".\"ACCOUNT_ID\"))\n" +
-                "    from PUBLIC.ACCOUNT \"g2\"\n" +
-                "    where \"g0\".\"SSN\" = \"g2\".\"SSN\"\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ACCOUNT\n" +
+                "      where \"g0\".\"SSN\" = \"SSN\"\n" +
+                "      order by \"ACCOUNT_ID\"\n" +
+                "    ) \"g2\"\n" +
                 "  ) \"accounts\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "order by \"g0\".\"SSN\"";
@@ -183,12 +194,20 @@ class SQLDataFetcherTest {
                 "          key 'id' value \"g2\".\"PRODUCT_ID\",\n" +
                 "          key 'SHARES_COUNT' value \"g2\".\"SHARES_COUNT\"\n" +
                 "        ))\n" +
-                "        from PUBLIC.HOLDINGS \"g2\"\n" +
-                "        where \"g1\".\"ACCOUNT_ID\" = \"g2\".\"ACCOUNT_ID\"\n" +
+                "        from (\n" +
+                "          select *\n" +
+                "          from PUBLIC.HOLDINGS\n" +
+                "          where \"g1\".\"ACCOUNT_ID\" = \"ACCOUNT_ID\"\n" +
+                "          order by \"TRANSACTION_ID\"\n" +
+                "        ) \"g2\"\n" +
                 "      )\n" +
                 "    ))\n" +
-                "    from PUBLIC.ACCOUNT \"g1\"\n" +
-                "    where \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ACCOUNT\n" +
+                "      where \"g0\".\"SSN\" = \"SSN\"\n" +
+                "      order by \"ACCOUNT_ID\"\n" +
+                "    ) \"g1\"\n" +
                 "  ) \"accounts\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "order by \"g0\".\"SSN\"";
@@ -329,8 +348,12 @@ class SQLDataFetcherTest {
                 "  \"g0\".\"SSN\" \"SSN\",\n" +
                 "  (\n" +
                 "    select json_arrayagg(json_object(key 'ACCOUNT_ID' value \"g1\".\"ACCOUNT_ID\"))\n" +
-                "    from PUBLIC.ACCOUNT \"g1\"\n" +
-                "    where \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ACCOUNT\n" +
+                "      where \"g0\".\"SSN\" = \"SSN\"\n" +
+                "      order by \"ACCOUNT_ID\"\n" +
+                "    ) \"g1\"\n" +
                 "  ) \"accounts\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "where (\n" +
@@ -394,8 +417,11 @@ class SQLDataFetcherTest {
                 "  \"g0\".\"LASTNAME\" \"LASTNAME\",\n" +
                 "  (\n" +
                 "    select json_arrayagg(json_object(key 'STATE' value \"g1\".\"STATE\"))\n" +
-                "    from PUBLIC.ADDRESS \"g1\"\n" +
-                "    where \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ADDRESS\n" +
+                "      where \"g0\".\"SSN\" = \"SSN\"\n" +
+                "    ) \"g1\"\n" +
                 "  ) \"addreses\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "where (\n" +
@@ -569,8 +595,12 @@ class SQLDataFetcherTest {
                 "      key 'ACCOUNT_ID' value \"g1\".\"ACCOUNT_ID\",\n" +
                 "      key 'STATUS' value \"g1\".\"STATUS\"\n" +
                 "    ))\n" +
-                "    from PUBLIC.ACCOUNT \"g1\"\n" +
-                "    where \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ACCOUNT\n" +
+                "      where \"g0\".\"SSN\" = \"SSN\"\n" +
+                "      order by \"ACCOUNT_ID\"\n" +
+                "    ) \"g1\"\n" +
                 "  ) \"accounts\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "where (\n" +
@@ -716,11 +746,15 @@ class SQLDataFetcherTest {
                 "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\",\n" +
                 "  (\n" +
                 "    select json_arrayagg(json_object(key 'ACCOUNT_ID' value \"g1\".\"ACCOUNT_ID\"))\n" +
-                "    from PUBLIC.ACCOUNT \"g1\"\n" +
-                "    where (\n" +
-                "      \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
-                "      and \"g1\".\"ACCOUNT_ID\" = 19980001\n" +
-                "    )\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ACCOUNT\n" +
+                "      where (\n" +
+                "        \"g0\".\"SSN\" = \"SSN\"\n" +
+                "        and \"g1\".\"ACCOUNT_ID\" = 19980001\n" +
+                "      )\n" +
+                "      order by \"ACCOUNT_ID\"\n" +
+                "    ) \"g1\"\n" +
                 "  ) \"accounts\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "where (\n" +
@@ -778,12 +812,16 @@ class SQLDataFetcherTest {
                 "      key 'TRANSACTION_ID' value \"g1\".\"TRANSACTION_ID\",\n" +
                 "      key 'SHARES_COUNT' value \"g1\".\"SHARES_COUNT\"\n" +
                 "    ))\n" +
-                "    from PUBLIC.HOLDINGS \"g1\"\n" +
-                "    where (\n" +
-                "      \"g0\".\"ACCOUNT_ID\" = \"g1\".\"ACCOUNT_ID\"\n" +
-                "      and \"g1\".\"TRANSACTION_ID\" = 2\n" +
-                "      and \"g1\".\"SHARES_COUNT\" = 25\n" +
-                "    )\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.HOLDINGS\n" +
+                "      where (\n" +
+                "        \"g0\".\"ACCOUNT_ID\" = \"ACCOUNT_ID\"\n" +
+                "        and \"g1\".\"TRANSACTION_ID\" = 2\n" +
+                "        and \"g1\".\"SHARES_COUNT\" = 25\n" +
+                "      )\n" +
+                "      order by \"TRANSACTION_ID\"\n" +
+                "    ) \"g1\"\n" +
                 "  ) \"holdinges\"\n" +
                 "from PUBLIC.ACCOUNT \"g0\"\n" +
                 "where (\n" +
@@ -835,28 +873,35 @@ class SQLDataFetcherTest {
                 "      key 'ST_ADDRESS' value \"g1\".\"ST_ADDRESS\",\n" +
                 "      key 'ZIPCODE' value \"g1\".\"ZIPCODE\"\n" +
                 "    ))\n" +
-                "    from PUBLIC.ADDRESS \"g1\"\n" +
-                "    where (\n" +
-                "      \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
-                "      and (\n" +
-                "        \"g1\".\"STATE\" = 'New York'\n" +
-                "        or (\n" +
-                "          \"g1\".\"STATE\" = 'Ohio'\n" +
-                "          and \"g1\".\"ZIPCODE\" = '45232'\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ADDRESS\n" +
+                "      where (\n" +
+                "        \"g0\".\"SSN\" = \"SSN\"\n" +
+                "        and (\n" +
+                "          \"g1\".\"STATE\" = 'New York'\n" +
+                "          or (\n" +
+                "            \"g1\".\"STATE\" = 'Ohio'\n" +
+                "            and \"g1\".\"ZIPCODE\" = '45232'\n" +
+                "          )\n" +
                 "        )\n" +
                 "      )\n" +
-                "    )\n" +
+                "    ) \"g1\"\n" +
                 "  ) \"addreses\",\n" +
                 "  (\n" +
                 "    select json_arrayagg(json_object(\n" +
                 "      key 'ACCOUNT_ID' value \"g2\".\"ACCOUNT_ID\",\n" +
                 "      key 'TYPE' value \"g2\".\"TYPE\"\n" +
                 "    ))\n" +
-                "    from PUBLIC.ACCOUNT \"g2\"\n" +
-                "    where (\n" +
-                "      \"g0\".\"SSN\" = \"g2\".\"SSN\"\n" +
-                "      and \"g2\".\"TYPE\" = 'Active'\n" +
-                "    )\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ACCOUNT\n" +
+                "      where (\n" +
+                "        \"g0\".\"SSN\" = \"SSN\"\n" +
+                "        and \"g2\".\"TYPE\" = 'Active'\n" +
+                "      )\n" +
+                "      order by \"ACCOUNT_ID\"\n" +
+                "    ) \"g2\"\n" +
                 "  ) \"accounts\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "order by \"g0\".\"SSN\"";
@@ -904,17 +949,21 @@ class SQLDataFetcherTest {
                 "      key 'SHARES_COUNT' value \"g1\".\"SHARES_COUNT\",\n" +
                 "      key 'TRANSACTION_ID' value \"g1\".\"TRANSACTION_ID\"\n" +
                 "    ))\n" +
-                "    from PUBLIC.HOLDINGS \"g1\"\n" +
-                "    where (\n" +
-                "      \"g0\".\"ID\" = \"g1\".\"PRODUCT_ID\"\n" +
-                "      and (\n" +
-                "        (\n" +
-                "          \"g1\".\"PRODUCT_ID\" = 1008\n" +
-                "          and \"g1\".\"TRANSACTION_ID\" = 10\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.HOLDINGS\n" +
+                "      where (\n" +
+                "        \"g0\".\"ID\" = \"PRODUCT_ID\"\n" +
+                "        and (\n" +
+                "          (\n" +
+                "            \"g1\".\"PRODUCT_ID\" = 1008\n" +
+                "            and \"g1\".\"TRANSACTION_ID\" = 10\n" +
+                "          )\n" +
+                "          or \"g1\".\"TRANSACTION_ID\" = 33\n" +
                 "        )\n" +
-                "        or \"g1\".\"TRANSACTION_ID\" = 33\n" +
                 "      )\n" +
-                "    )\n" +
+                "      order by \"TRANSACTION_ID\"\n" +
+                "    ) \"g1\"\n" +
                 "  ) \"holdinges\",\n" +
                 "  \"g0\".\"COMPANY_NAME\" \"COMPANY_NAME\",\n" +
                 "  \"g0\".\"SYMBOL\" \"SYMBOL\"\n" +
@@ -986,28 +1035,35 @@ class SQLDataFetcherTest {
                 "      key 'ST_ADDRESS' value \"g1\".\"ST_ADDRESS\",\n" +
                 "      key 'ZIPCODE' value \"g1\".\"ZIPCODE\"\n" +
                 "    ))\n" +
-                "    from PUBLIC.ADDRESS \"g1\"\n" +
-                "    where (\n" +
-                "      \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
-                "      and (\n" +
-                "        (\n" +
-                "          \"g1\".\"STATE\" <> 'Texas'\n" +
-                "          and not (\"g1\".\"ZIPCODE\" = '19154')\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ADDRESS\n" +
+                "      where (\n" +
+                "        \"g0\".\"SSN\" = \"SSN\"\n" +
+                "        and (\n" +
+                "          (\n" +
+                "            \"g1\".\"STATE\" <> 'Texas'\n" +
+                "            and not (\"g1\".\"ZIPCODE\" = '19154')\n" +
+                "          )\n" +
+                "          or \"g1\".\"STATE\" = 'New York'\n" +
                 "        )\n" +
-                "        or \"g1\".\"STATE\" = 'New York'\n" +
                 "      )\n" +
-                "    )\n" +
+                "    ) \"g1\"\n" +
                 "  ) \"addreses\",\n" +
                 "  (\n" +
                 "    select json_arrayagg(json_object(\n" +
                 "      key 'ACCOUNT_ID' value \"g2\".\"ACCOUNT_ID\",\n" +
                 "      key 'TYPE' value \"g2\".\"TYPE\"\n" +
                 "    ))\n" +
-                "    from PUBLIC.ACCOUNT \"g2\"\n" +
-                "    where (\n" +
-                "      \"g0\".\"SSN\" = \"g2\".\"SSN\"\n" +
-                "      and \"g2\".\"TYPE\" = 'Active'\n" +
-                "    )\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ACCOUNT\n" +
+                "      where (\n" +
+                "        \"g0\".\"SSN\" = \"SSN\"\n" +
+                "        and \"g2\".\"TYPE\" = 'Active'\n" +
+                "      )\n" +
+                "      order by \"ACCOUNT_ID\"\n" +
+                "    ) \"g2\"\n" +
                 "  ) \"accounts\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "where (\n" +
@@ -1069,28 +1125,35 @@ class SQLDataFetcherTest {
                 "      key 'ST_ADDRESS' value \"g1\".\"ST_ADDRESS\",\n" +
                 "      key 'ZIPCODE' value \"g1\".\"ZIPCODE\"\n" +
                 "    ))\n" +
-                "    from PUBLIC.ADDRESS \"g1\"\n" +
-                "    where (\n" +
-                "      \"g0\".\"SSN\" = \"g1\".\"SSN\"\n" +
-                "      and (\n" +
-                "        \"g1\".\"STATE\" = 'New York'\n" +
-                "        or (\n" +
-                "          \"g1\".\"STATE\" = 'Ohio'\n" +
-                "          and \"g1\".\"ZIPCODE\" = '45232'\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ADDRESS\n" +
+                "      where (\n" +
+                "        \"g0\".\"SSN\" = \"SSN\"\n" +
+                "        and (\n" +
+                "          \"g1\".\"STATE\" = 'New York'\n" +
+                "          or (\n" +
+                "            \"g1\".\"STATE\" = 'Ohio'\n" +
+                "            and \"g1\".\"ZIPCODE\" = '45232'\n" +
+                "          )\n" +
                 "        )\n" +
                 "      )\n" +
-                "    )\n" +
+                "    ) \"g1\"\n" +
                 "  ) \"addreses\",\n" +
                 "  (\n" +
                 "    select json_arrayagg(json_object(\n" +
                 "      key 'ACCOUNT_ID' value \"g2\".\"ACCOUNT_ID\",\n" +
                 "      key 'TYPE' value \"g2\".\"TYPE\"\n" +
                 "    ))\n" +
-                "    from PUBLIC.ACCOUNT \"g2\"\n" +
-                "    where (\n" +
-                "      \"g0\".\"SSN\" = \"g2\".\"SSN\"\n" +
-                "      and \"g2\".\"TYPE\" = 'Active'\n" +
-                "    )\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ACCOUNT\n" +
+                "      where (\n" +
+                "        \"g0\".\"SSN\" = \"SSN\"\n" +
+                "        and \"g2\".\"TYPE\" = 'Active'\n" +
+                "      )\n" +
+                "      order by \"ACCOUNT_ID\"\n" +
+                "    ) \"g2\"\n" +
                 "  ) \"accounts\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
                 "order by \"g0\".\"SSN\"";
@@ -1152,6 +1215,71 @@ class SQLDataFetcherTest {
                 "  and not (\"g0\".\"SSN\" = 'CST01002')\n" +
                 ")\n" +
                 "order by \"g0\".\"SSN\"";
+        Assertions.assertEquals(expected,result);
+    }
+
+    @Test
+    public void page() throws Exception {
+        String query = "{\n" +
+                "  customers (page: {limit: 1, offset: 2}) {\n" +
+                "    FIRSTNAME\n" +
+                "    LASTNAME\n" +
+                "  }\n" +
+                "}";
+        String result = executeSQL(query);
+        String expected = "select\n" +
+                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\",\n" +
+                "  \"g0\".\"LASTNAME\" \"LASTNAME\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "order by \"g0\".\"SSN\"\n" +
+                "limit 1\n" +
+                "offset 2";
+        Assertions.assertEquals(expected,result);
+    }
+
+    @Test
+    public void pageNested() throws Exception {
+        String query = "{\n" +
+                "  customers (page: {limit: 5}) {\n" +
+                "    FIRSTNAME\n" +
+                "    LASTNAME\n" +
+                "    accounts (page: {limit:1}) {\n" +
+                "      ACCOUNT_ID\n" +
+                "      holdinges(page: {limit:1}) {\n" +
+                "        SHARES_COUNT\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+        String result = executeSQL(query);
+        String expected = "select\n" +
+                "  \"g0\".\"FIRSTNAME\" \"FIRSTNAME\",\n" +
+                "  \"g0\".\"LASTNAME\" \"LASTNAME\",\n" +
+                "  (\n" +
+                "    select json_arrayagg(json_object(\n" +
+                "      key 'ACCOUNT_ID' value \"g1\".\"ACCOUNT_ID\",\n" +
+                "      key 'holdinges' value (\n" +
+                "        select json_arrayagg(json_object(key 'SHARES_COUNT' value \"g2\".\"SHARES_COUNT\"))\n" +
+                "        from (\n" +
+                "          select *\n" +
+                "          from PUBLIC.HOLDINGS\n" +
+                "          where \"g1\".\"ACCOUNT_ID\" = \"ACCOUNT_ID\"\n" +
+                "          order by \"TRANSACTION_ID\"\n" +
+                "          limit 1\n" +
+                "        ) \"g2\"\n" +
+                "      )\n" +
+                "    ))\n" +
+                "    from (\n" +
+                "      select *\n" +
+                "      from PUBLIC.ACCOUNT\n" +
+                "      where \"g0\".\"SSN\" = \"SSN\"\n" +
+                "      order by \"ACCOUNT_ID\"\n" +
+                "      limit 1\n" +
+                "    ) \"g1\"\n" +
+                "  ) \"accounts\"\n" +
+                "from PUBLIC.CUSTOMER \"g0\"\n" +
+                "order by \"g0\".\"SSN\"\n" +
+                "limit 5";
         Assertions.assertEquals(expected,result);
     }
 
