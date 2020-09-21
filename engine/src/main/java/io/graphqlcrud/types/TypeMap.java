@@ -21,5 +21,5 @@ import graphql.schema.GraphQLOutputType;
 public interface TypeMap {
     GraphQLOutputType getAsGraphQLTypeString(int dataType);
 
-    GraphQLInputType getAsGraphQLFilterType(int dataType);
+    GraphQLInputType getAsGraphQLTypeForInput(int dataType, String type);
 }

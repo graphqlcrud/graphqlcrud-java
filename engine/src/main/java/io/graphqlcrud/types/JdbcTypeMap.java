@@ -21,9 +21,7 @@ import graphql.Scalars;
 import graphql.scalars.ExtendedScalars;
 import graphql.schema.GraphQLInputType;
 import graphql.schema.GraphQLOutputType;
-import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeReference;
-import io.graphqlcrud.Filters;
 
 public class JdbcTypeMap implements TypeMap {
 
@@ -35,11 +33,6 @@ public class JdbcTypeMap implements TypeMap {
             case Types.INTEGER:
             case Types.SMALLINT:
                 typeString = Scalars.GraphQLInt;
-                break;
-            case Types.CHAR:
-            case Types.VARCHAR:
-            case Types.LONGVARCHAR:
-                typeString = Scalars.GraphQLString;
                 break;
             case Types.DOUBLE:
             case Types.FLOAT:
@@ -57,13 +50,14 @@ public class JdbcTypeMap implements TypeMap {
                 typeString = Scalars.GraphQLBoolean;
                 break;
             case Types.OTHER:
-                typeString = ExtendedScalars.Object;
-                break;
             case Types.BINARY:
             case Types.VARBINARY:
             case Types.LONGVARBINARY:
                 typeString = ExtendedScalars.Object;
                 break;
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
             default:
                 typeString = Scalars.GraphQLString;
                 break;
@@ -72,38 +66,58 @@ public class JdbcTypeMap implements TypeMap {
     }
 
     @Override
-    public GraphQLInputType getAsGraphQLFilterType (int dataType) {
-        GraphQLInputType outputType;
+    public GraphQLInputType getAsGraphQLTypeForInput(int dataType, String type) {
+        GraphQLInputType typeString = null;
         switch (dataType) {
             case Types.TINYINT:
             case Types.INTEGER:
             case Types.SMALLINT:
-                outputType = GraphQLTypeReference.typeRef("IntInput");
-                break;
-            case Types.CHAR:
-            case Types.VARCHAR:
-            case Types.LONGVARCHAR:
-                outputType = GraphQLTypeReference.typeRef("StringInput");
+                if(type.equals("mutation")) {
+                    typeString = Scalars.GraphQLInt;
+                } else if(type.equals("filter")) {
+                    typeString = GraphQLTypeReference.typeRef("IntInput");
+                }
                 break;
             case Types.DOUBLE:
             case Types.FLOAT:
             case Types.REAL:
             case Types.NUMERIC:
             case Types.DECIMAL:
-                outputType = GraphQLTypeReference.typeRef("FloatInput");
+                if(type.equals("mutation")) {
+                    typeString = Scalars.GraphQLFloat;
+                } else if(type.equals("filter")) {
+                    typeString = GraphQLTypeReference.typeRef("FloatInput");
+                }
                 break;
             case Types.DATE:
             case Types.TIMESTAMP:
             case Types.TIME:
-                outputType = GraphQLTypeReference.typeRef("StringInput");
+                typeString = ExtendedScalars.DateTime;
                 break;
             case Types.BIT:
-                outputType = GraphQLTypeReference.typeRef("BooleanInput");
+                if(type.equals("mutation")) {
+                    typeString = Scalars.GraphQLBoolean;
+                } else if(type.equals("filter")) {
+                    typeString = GraphQLTypeReference.typeRef("BooleanInput");
+                }
                 break;
+            case Types.OTHER:
+            case Types.BINARY:
+            case Types.VARBINARY:
+            case Types.LONGVARBINARY:
+                typeString = ExtendedScalars.Object;
+                break;
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
             default:
-                outputType = GraphQLTypeReference.typeRef("StringInput");
+                if(type.equals("mutation")) {
+                    typeString = Scalars.GraphQLString;
+                } else if(type.equals("filter")) {
+                    typeString = GraphQLTypeReference.typeRef("StringInput");
+                }
                 break;
         }
-        return outputType;
+        return typeString;
     }
 }
