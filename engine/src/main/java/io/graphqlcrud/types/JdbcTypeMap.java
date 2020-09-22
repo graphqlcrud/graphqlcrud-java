@@ -66,28 +66,56 @@ public class JdbcTypeMap implements TypeMap {
     }
 
     @Override
-    public GraphQLInputType getAsGraphQLTypeForInput(int dataType, String type) {
-        GraphQLInputType typeString = null;
+    public GraphQLInputType getAsGraphQLFilterType (int dataType) {
+        GraphQLInputType outputType;
         switch (dataType) {
             case Types.TINYINT:
             case Types.INTEGER:
             case Types.SMALLINT:
-                if(type.equals("mutation")) {
-                    typeString = Scalars.GraphQLInt;
-                } else if(type.equals("filter")) {
-                    typeString = GraphQLTypeReference.typeRef("IntInput");
-                }
+                outputType = GraphQLTypeReference.typeRef("IntInput");
+                break;
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+                outputType = GraphQLTypeReference.typeRef("StringInput");
                 break;
             case Types.DOUBLE:
             case Types.FLOAT:
             case Types.REAL:
             case Types.NUMERIC:
             case Types.DECIMAL:
-                if(type.equals("mutation")) {
-                    typeString = Scalars.GraphQLFloat;
-                } else if(type.equals("filter")) {
-                    typeString = GraphQLTypeReference.typeRef("FloatInput");
-                }
+                outputType = GraphQLTypeReference.typeRef("FloatInput");
+                break;
+            case Types.DATE:
+            case Types.TIMESTAMP:
+            case Types.TIME:
+                outputType = GraphQLTypeReference.typeRef("StringInput");
+                break;
+            case Types.BIT:
+                outputType = GraphQLTypeReference.typeRef("BooleanInput");
+                break;
+            default:
+                outputType = GraphQLTypeReference.typeRef("StringInput");
+                break;
+        }
+        return outputType;
+    }
+
+    @Override
+    public GraphQLInputType getAsGraphQLTypeStringForInput(int dataType) {
+        GraphQLInputType typeString;
+        switch (dataType) {
+            case Types.TINYINT:
+            case Types.INTEGER:
+            case Types.SMALLINT:
+                typeString = Scalars.GraphQLInt;
+                break;
+            case Types.DOUBLE:
+            case Types.FLOAT:
+            case Types.REAL:
+            case Types.NUMERIC:
+            case Types.DECIMAL:
+                typeString = Scalars.GraphQLFloat;
                 break;
             case Types.DATE:
             case Types.TIMESTAMP:
@@ -95,11 +123,7 @@ public class JdbcTypeMap implements TypeMap {
                 typeString = ExtendedScalars.DateTime;
                 break;
             case Types.BIT:
-                if(type.equals("mutation")) {
-                    typeString = Scalars.GraphQLBoolean;
-                } else if(type.equals("filter")) {
-                    typeString = GraphQLTypeReference.typeRef("BooleanInput");
-                }
+                typeString = Scalars.GraphQLBoolean;
                 break;
             case Types.OTHER:
             case Types.BINARY:
@@ -111,11 +135,7 @@ public class JdbcTypeMap implements TypeMap {
             case Types.VARCHAR:
             case Types.LONGVARCHAR:
             default:
-                if(type.equals("mutation")) {
-                    typeString = Scalars.GraphQLString;
-                } else if(type.equals("filter")) {
-                    typeString = GraphQLTypeReference.typeRef("StringInput");
-                }
+                typeString = Scalars.GraphQLString;
                 break;
         }
         return typeString;
