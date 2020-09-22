@@ -23,6 +23,7 @@ import static org.jooq.impl.DSL.name;
 import static org.jooq.impl.DSL.table;
 import static org.jooq.impl.DSL.val;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,13 +37,14 @@ import org.jooq.JSONEntry;
 import org.jooq.Record;
 import org.jooq.SQLDialect;
 import org.jooq.SelectSelectStep;
-import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import graphql.language.Argument;
 import graphql.language.Field;
+import graphql.language.IntValue;
+import graphql.language.ObjectField;
 import graphql.language.ObjectValue;
 import graphql.language.Value;
 import graphql.schema.GraphQLFieldDefinition;
@@ -69,6 +71,23 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
         Map<String, org.jooq.Field<?>> selectedColumns = new LinkedHashMap<>();
         Map<String, Field> selectedFields = new LinkedHashMap<>();
         org.jooq.Condition condition;
+        AliasedTable table;
+        Page page;
+        List<org.jooq.Field<?>> orderby;
+    }
+
+    private static class Page {
+        BigInteger limit;
+        BigInteger offset;
+    }
+
+    private class AliasedTable {
+        String name;
+        String alias;
+        public AliasedTable(String name, String alias) {
+            this.name = name;
+            this.alias = alias;
+        }
     }
 
     private Stack<VisitorContext> stack = new Stack<>();
@@ -112,30 +131,28 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
 
         if (sqlDirective != null && sqlDirective.getPrimaryFields() != null) {
             String aliasRight = alias(this.inc.getAndIncrement());
-            Table<Record> right = buildTable(definition, aliasRight);
+            AliasedTable right = buildTable(definition, aliasRight);
 
             SelectSelectStep<Record> select = this.create.select();
-
-            // add from
-            select.from(right);
 
             // build where clause based on join
             Condition where = null;
             for (int key = 0; key < sqlDirective.getPrimaryFields().size(); key++) {
                 Condition cond = field(name(aliasLeft, sqlDirective.getPrimaryFields().get(key)))
-                        .eq(field(name(aliasRight, sqlDirective.getForeignFields().get(key))));
+                        .eq(field(name(sqlDirective.getForeignFields().get(key))));
                 if (key == 0) {
                     where = cond;
                 } else {
                     where = where.and(cond);
                 }
             }
-            select.where(where);
 
             // next level deep as context
             vctx = new VisitorContext();
+            vctx.table = right;
             vctx.alias = aliasRight;
             vctx.selectClause = select;
+            vctx.condition = where;
 
             this.stack.push(vctx);
         } else {
@@ -147,14 +164,37 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
     public void endVisitObject(Field field, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type) {
         VisitorContext vctx = this.stack.pop();
 
-        // add orderby
-        //List<String> identityColumns = getIdentityColumns(type);
-        //addOrderBy(vctx, identityColumns);
+        SelectSelectStep<Record> select = this.create.select();
+        select.from(vctx.table.name);
 
-        // add where
-        if (vctx.condition != null) {
-            vctx.selectClause.where(vctx.condition);
+        // add orderby
+        if (vctx.orderby == null) {
+            List<String> identityColumns = getIdentityColumns(type);
+            List<org.jooq.Field<?>> orderby = new ArrayList<>();
+            identityColumns.stream().forEach(col -> {
+                org.jooq.Field<?> f = field(name(col));
+                orderby.add(f);
+            });
+            select.orderBy(orderby);
+        } else {
+            select.orderBy(vctx.orderby);
         }
+
+        // has limit/offset
+        if (vctx.page != null) {
+            if (vctx.page.limit != null) {
+                select.limit(vctx.page.limit.intValue());
+            }
+            if (vctx.page.offset != null) {
+                select.offset(vctx.page.offset.intValue());
+            }
+        }
+
+        // has where clause
+        if (vctx.condition != null) {
+            select.where(vctx.condition);
+        }
+        vctx.selectClause.from(table(select).as(vctx.table.alias));
 
         // build the nested json object
         List<JSONEntry<?>> list = new ArrayList<>();
@@ -169,32 +209,32 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
         this.stack.peek().selectedColumns.put(field.getName(), json);
     }
 
-    private void addOrderBy(VisitorContext vctx, List<String> identityColumns) {
+    private List<org.jooq.Field<?>> buildOrderBy(String alias, List<String> identityColumns) {
         List<org.jooq.Field<?>> orderby = new ArrayList<>();
         identityColumns.stream().forEach(col -> {
-            org.jooq.Field<?> f = field(name(vctx.alias, col));
+            org.jooq.Field<?> f = field(name(alias, col));
             orderby.add(f);
         });
-        vctx.selectClause.orderBy(orderby);
+        return orderby;
     }
 
     @Override
     public void startVisitRootObject(Field rootField, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type) {
+        VisitorContext vctx = new VisitorContext();
         SQLDirective sqlDirective = SQLDirective.find(type.getDirectives());
         if (sqlDirective == null) {
             throw new RuntimeException("No SQL Directive found on field " + rootField.getName());
         }
 
         String alias = alias(this.inc.getAndIncrement());
-        Table<Record> table = table(sqlDirective.getTableName()).as(alias);
+        AliasedTable table = new AliasedTable(sqlDirective.getTableName(), alias);
 
         SelectSelectStep<Record> select = this.create.select();
 
         // add from
-        select.from(table);
+        vctx.table = table;
 
         // put the current table on stack
-        VisitorContext vctx = new VisitorContext();
         vctx.alias = alias;
         vctx.selectClause = select;
 
@@ -205,9 +245,17 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
     public void endVisitRootObject(Field rootField, GraphQLFieldDefinition rootDefinition, GraphQLObjectType type) {
         VisitorContext vctx = this.stack.peek();
 
+        // add table
+        vctx.selectClause.from(table(vctx.table.name).as(vctx.table.alias));
+
         // add orderby
-        List<String> identityColumns = getIdentityColumns(type);
-        addOrderBy(vctx, identityColumns);
+        if (vctx.orderby == null) {
+            List<String> identityColumns = getIdentityColumns(type);
+            List<org.jooq.Field<?>> orderby = buildOrderBy(vctx.alias, identityColumns);
+            vctx.selectClause.orderBy(orderby);
+        } else {
+            vctx.selectClause.orderBy(vctx.orderby);
+        }
 
         // add where
         if (vctx.condition != null) {
@@ -219,6 +267,16 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
             projected.add(v.as(fieldName(vctx.selectedFields.get(k))));
         });
         vctx.selectClause.select(projected);
+
+        // add limit & offset
+        if (vctx.page != null) {
+            if (vctx.page.limit != null) {
+                vctx.selectClause.limit(vctx.page.limit.intValue());
+            }
+            if (vctx.page.offset != null) {
+                vctx.selectClause.offset(vctx.page.offset.intValue());
+            }
+        }
     }
 
     private String alias(int i) {
@@ -241,7 +299,7 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
         return names;
     }
 
-    private Table<Record> buildTable(GraphQLFieldDefinition definition, String alias) {
+    private AliasedTable buildTable(GraphQLFieldDefinition definition, String alias) {
         SQLDirective parentDirective = null;
         if (definition.getType() instanceof GraphQLModifiedType) {
             GraphQLObjectType type = (GraphQLObjectType)((GraphQLModifiedType)definition.getType()).getWrappedType();
@@ -252,7 +310,7 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
         }
 
         // Build the main table
-        Table<Record> table = table(parentDirective.getTableName()).as(alias);
+        AliasedTable table = new AliasedTable(parentDirective.getTableName(), alias);
         return table;
     }
 
@@ -271,11 +329,27 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
         SQLFilterBuilder filterBuilder = new SQLFilterBuilder(vctx.alias);
 
         if(argName.equals("page")) {
-            //TODO : Walk through page results
+            Page p = new Page();
+            ObjectValue v = (ObjectValue)argValue;
+            for (ObjectField of: v.getObjectFields()) {
+                if (of.getName().equals("limit")) {
+                    p.limit = ((IntValue)of.getValue()).getValue();
+                } else if (of.getName().equals("offset")) {
+                    p.offset = ((IntValue)of.getValue()).getValue();
+                }
+            }
+            vctx.page = p;
+        } else if (argName.equals("orderBy")) {
+            // handle orderBy
         } else if(argName.equals("filter")) {
             LOGGER.debug("Walk through filter results");
             FilterScanner<Condition> filterScanner = new FilterScanner<>(filterBuilder);
-            vctx.condition = filterScanner.scan((ObjectValue)argValue, Clause.and).condition;
+            Condition condition = filterScanner.scan((ObjectValue)argValue, Clause.and).condition;
+            if (vctx.condition == null) {
+                vctx.condition = condition;
+            } else {
+                vctx.condition = vctx.condition.and(condition);
+            }
         } else {
             Condition condition = filterBuilder.buildCondition(argName, "eq", argValue);
             if (vctx.condition == null) {
