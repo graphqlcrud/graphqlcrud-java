@@ -34,7 +34,7 @@ import io.graphqlcrud.types.JdbcTypeMap;
 public class GraphQLSchemaBuilder {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GraphQLSchemaBuilder.class);
-    private static final JdbcTypeMap TYPEMAP = new JdbcTypeMap();
+    private static final JdbcTypeMap TYPE_MAP = new JdbcTypeMap();
     private static final SQLDataFetcherFactory DEFAULT_DATA_FETCHER_FACTORY = new SQLDataFetcherFactory();
     private static final RowFetcherFactory DEFAULT_ROW_FETCHER_FACTORY = new RowFetcherFactory();
 
@@ -68,7 +68,7 @@ public class GraphQLSchemaBuilder {
             GraphQLInputObjectType.Builder  entityBuilder = GraphQLInputObjectType.newInputObject();
             String filterName = StringUtil.capitalize(filterEntity.getName().toLowerCase()) + "FilterInput";
             entityBuilder.name(filterName);
-            buildFilterFields(filterEntity,schema).stream().forEach(filter -> {
+            buildFilterFields(filterEntity).stream().forEach(filter -> {
                 entityBuilder.field(filter.build());
                 entityBuilder.field(GraphQLInputObjectField.newInputObjectField().name("not").type(GraphQLTypeReference.typeRef(filterName)));
                 entityBuilder.field(GraphQLInputObjectField.newInputObjectField().name("and").type(GraphQLList.list(GraphQLTypeReference.typeRef(filterName))));
@@ -76,6 +76,31 @@ public class GraphQLSchemaBuilder {
             });
             builder.additionalType(entityBuilder.build());
         });
+
+        GraphQLObjectType.Builder mutationTypeBuilder = GraphQLObjectType.newObject();
+        mutationTypeBuilder.name("MutationType");
+
+        schema.getEntities().forEach(mutation -> {
+            GraphQLInputObjectType.Builder mutationBuilder = GraphQLInputObjectType.newInputObject();
+            String name = "Mutate" + StringUtil.capitalize(mutation.getName().toLowerCase()) + "Input";
+            mutationBuilder.name(name);
+            buildMutations(mutation).forEach(updateField -> {
+                mutationBuilder.field(updateField.build());
+            });
+
+            builder.additionalType(mutationBuilder.build());
+
+            //add create type to MutationType
+            addMutationForEntity(mutation, mutationTypeBuilder, "create");
+
+            //add update type to MutationType
+            addMutationForEntity(mutation, mutationTypeBuilder, "update");
+
+            //add delete type to MutationType
+            addMutationForEntity(mutation, mutationTypeBuilder, "delete");
+        });
+
+        builder.mutation(mutationTypeBuilder.build());
 
         schema.getEntities().stream().forEach(entity -> {
             GraphQLObjectType.Builder typeBuilder = GraphQLObjectType.newObject();
@@ -110,6 +135,38 @@ public class GraphQLSchemaBuilder {
         builder.codeRegistry(codeBuilder.build());
 
         return builder.build();
+    }
+
+    private void addMutationForEntity(Entity entity, Builder mutationTypeBuilder, String name) {
+        String argumentType;
+        String fieldName;
+        GraphQLFieldDefinition.Builder field = GraphQLFieldDefinition.newFieldDefinition();
+
+        switch (name) {
+            case "create":
+                fieldName = "create" + StringUtil.capitalize(entity.getName().toLowerCase());
+                argumentType = "Mutate" + StringUtil.capitalize(entity.getName().toLowerCase()) + "Input";
+                field.type(new GraphQLTypeReference(entity.getName()));
+                break;
+            case "update":
+                fieldName = "update" + StringUtil.capitalize(entity.getName().toLowerCase());
+                argumentType = "Mutate" + StringUtil.capitalize(entity.getName().toLowerCase()) + "Input";
+                String conditionalUpdate = StringUtil.capitalize(entity.getName().toLowerCase()) + "FilterInput";
+                field.argument(GraphQLArgument.newArgument().name("where").type(new GraphQLTypeReference(conditionalUpdate)).build());
+                field.type(Scalars.GraphQLInt);
+                break;
+            case "delete":
+                fieldName = "delete" + StringUtil.capitalize(entity.getName().toLowerCase());
+                argumentType = StringUtil.capitalize(entity.getName().toLowerCase()) + "FilterInput";
+                field.type(Scalars.GraphQLInt);
+                break;
+            default:
+                throw new RuntimeException("Unexpected value: " + name);
+        }
+
+        field.name(fieldName);
+        field.argument(GraphQLArgument.newArgument().name("input").type(GraphQLNonNull.nonNull(new GraphQLTypeReference(argumentType))).build());
+        mutationTypeBuilder.field(field.build());
     }
 
     private void addQueryOperationsForEntity(Entity entity, Builder queryTypeBuilder, GraphQLCodeRegistry.Builder codeBuilder) {
@@ -156,9 +213,9 @@ public class GraphQLSchemaBuilder {
                 fieldBuilder.type(GraphQLNonNull.nonNull(Scalars.GraphQLID));
             } else {
                 if (attr.isNullable()) {
-                    fieldBuilder.type(TYPEMAP.getAsGraphQLTypeString(attr.getType()));
+                    fieldBuilder.type(TYPE_MAP.getAsGraphQLTypeString(attr.getType()));
                 } else {
-                    fieldBuilder.type(GraphQLNonNull.nonNull(TYPEMAP.getAsGraphQLTypeString(attr.getType())));
+                    fieldBuilder.type(GraphQLNonNull.nonNull(TYPE_MAP.getAsGraphQLTypeString(attr.getType())));
                 }
             }
             fields.add(fieldBuilder);
@@ -195,15 +252,35 @@ public class GraphQLSchemaBuilder {
         return fields;
     }
 
-    protected List<GraphQLInputObjectField.Builder> buildFilterFields(Entity filterEntity, Schema schema) {
+    protected List<GraphQLInputObjectField.Builder> buildFilterFields(Entity filterEntity) {
         ArrayList<GraphQLInputObjectField.Builder> filterFields = new ArrayList<GraphQLInputObjectField.Builder>();
 
         filterEntity.getAttributes().stream().forEach(attr -> {
             GraphQLInputObjectField.Builder builder = GraphQLInputObjectField.newInputObjectField();
             builder.name(attr.getName());
-            builder.type(TYPEMAP.getAsGraphQLFilterType(attr.getType()));
+            builder.type(TYPE_MAP.getAsGraphQLFilterType(attr.getType()));
             filterFields.add(builder);
         });
         return filterFields;
+    }
+
+    protected List<GraphQLInputObjectField.Builder> buildMutations(Entity mutationEntity) {
+        ArrayList<GraphQLInputObjectField.Builder> mutationFields = new ArrayList<>();
+
+        mutationEntity.getAttributes().forEach(attribute -> {
+            GraphQLInputObjectField.Builder builder = GraphQLInputObjectField.newInputObjectField();
+            builder.name(attribute.getName());
+            if (mutationEntity.isPartOfPrimaryKey(attribute.getName())) {
+                builder.type(GraphQLNonNull.nonNull(Scalars.GraphQLID));
+            } else {
+                if (attribute.isNullable()) {
+                    builder.type(TYPE_MAP.getAsGraphQLTypeStringForInput(attribute.getType()));
+                } else {
+                    builder.type(GraphQLNonNull.nonNull(TYPE_MAP.getAsGraphQLTypeStringForInput(attribute.getType())));
+                }
+            }
+            mutationFields.add(builder);
+        });
+        return mutationFields;
     }
 }

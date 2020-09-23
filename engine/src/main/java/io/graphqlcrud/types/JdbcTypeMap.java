@@ -21,9 +21,7 @@ import graphql.Scalars;
 import graphql.scalars.ExtendedScalars;
 import graphql.schema.GraphQLInputType;
 import graphql.schema.GraphQLOutputType;
-import graphql.schema.GraphQLType;
 import graphql.schema.GraphQLTypeReference;
-import io.graphqlcrud.Filters;
 
 public class JdbcTypeMap implements TypeMap {
 
@@ -35,11 +33,6 @@ public class JdbcTypeMap implements TypeMap {
             case Types.INTEGER:
             case Types.SMALLINT:
                 typeString = Scalars.GraphQLInt;
-                break;
-            case Types.CHAR:
-            case Types.VARCHAR:
-            case Types.LONGVARCHAR:
-                typeString = Scalars.GraphQLString;
                 break;
             case Types.DOUBLE:
             case Types.FLOAT:
@@ -57,13 +50,14 @@ public class JdbcTypeMap implements TypeMap {
                 typeString = Scalars.GraphQLBoolean;
                 break;
             case Types.OTHER:
-                typeString = ExtendedScalars.Object;
-                break;
             case Types.BINARY:
             case Types.VARBINARY:
             case Types.LONGVARBINARY:
                 typeString = ExtendedScalars.Object;
                 break;
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
             default:
                 typeString = Scalars.GraphQLString;
                 break;
@@ -105,5 +99,45 @@ public class JdbcTypeMap implements TypeMap {
                 break;
         }
         return outputType;
+    }
+
+    @Override
+    public GraphQLInputType getAsGraphQLTypeStringForInput(int dataType) {
+        GraphQLInputType typeString;
+        switch (dataType) {
+            case Types.TINYINT:
+            case Types.INTEGER:
+            case Types.SMALLINT:
+                typeString = Scalars.GraphQLInt;
+                break;
+            case Types.DOUBLE:
+            case Types.FLOAT:
+            case Types.REAL:
+            case Types.NUMERIC:
+            case Types.DECIMAL:
+                typeString = Scalars.GraphQLFloat;
+                break;
+            case Types.DATE:
+            case Types.TIMESTAMP:
+            case Types.TIME:
+                typeString = ExtendedScalars.DateTime;
+                break;
+            case Types.BIT:
+                typeString = Scalars.GraphQLBoolean;
+                break;
+            case Types.OTHER:
+            case Types.BINARY:
+            case Types.VARBINARY:
+            case Types.LONGVARBINARY:
+                typeString = ExtendedScalars.Object;
+                break;
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+            default:
+                typeString = Scalars.GraphQLString;
+                break;
+        }
+        return typeString;
     }
 }
