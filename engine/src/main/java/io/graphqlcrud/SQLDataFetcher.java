@@ -19,6 +19,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.GraphQLType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +35,19 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
     @Override
     public ResultSetList get(DataFetchingEnvironment environment) throws Exception {
         SQLContext ctx = environment.getContext();
+
+        GraphQLType type = environment.getParentType();
+        String mutation;
+        if(type instanceof GraphQLObjectType) {
+            String name = ((GraphQLObjectType) type).getName();
+            if(name.equals("MutationType")) {
+                mutation = buildMutation(environment);
+                Connection connection = ctx.getConnection();
+                Statement statement = connection.createStatement();
+                statement.execute(mutation);
+                LOGGER.info("SQL executed: " + mutation);
+            }
+        }
 
         String sql = buildSQL(environment);
         ctx.setSQL(sql);
@@ -53,7 +68,16 @@ public class SQLDataFetcher implements DataFetcher<ResultSetList>{
     private String buildSQL(DataFetchingEnvironment environment) {
         SQLQueryBuilderVisitor visitor = new SQLQueryBuilderVisitor(environment.getContext());
         QueryScanner scanner = new QueryScanner(environment, visitor);
-        scanner.scan(environment.getField(), environment.getFieldDefinition(), null, true);
-        return visitor.getSQL();
+        scanner.scanQuery(environment.getField(), environment.getFieldDefinition(), null, true);
+        String sql = visitor.getSQL();
+        return sql;
+    }
+
+    private String buildMutation(DataFetchingEnvironment environment) {
+        SQLMutationQueryBuilderVisitor visitor = new SQLMutationQueryBuilderVisitor(environment.getContext());
+        QueryScanner scanner = new QueryScanner(environment,visitor);
+        scanner.scanMutation(environment.getField(), environment.getFieldDefinition(), null, true);
+        String sql = visitor.getSQL();
+        return sql;
     }
 }

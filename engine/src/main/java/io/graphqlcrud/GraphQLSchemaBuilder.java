@@ -84,20 +84,20 @@ public class GraphQLSchemaBuilder {
             GraphQLInputObjectType.Builder mutationBuilder = GraphQLInputObjectType.newInputObject();
             String name = "Mutate" + StringUtil.capitalize(mutation.getName().toLowerCase()) + "Input";
             mutationBuilder.name(name);
-            buildMutations(mutation).forEach(updateField -> {
+            buildMutations(mutation, codeBuilder).forEach(updateField -> {
                 mutationBuilder.field(updateField.build());
             });
 
             builder.additionalType(mutationBuilder.build());
 
             //add create type to MutationType
-            addMutationForEntity(mutation, mutationTypeBuilder, "create");
+            addMutationForEntity(mutation, mutationTypeBuilder, "create", codeBuilder);
 
             //add update type to MutationType
-            addMutationForEntity(mutation, mutationTypeBuilder, "update");
+            addMutationForEntity(mutation, mutationTypeBuilder, "update", codeBuilder);
 
             //add delete type to MutationType
-            addMutationForEntity(mutation, mutationTypeBuilder, "delete");
+            addMutationForEntity(mutation, mutationTypeBuilder, "delete", codeBuilder);
         });
 
         builder.mutation(mutationTypeBuilder.build());
@@ -137,7 +137,7 @@ public class GraphQLSchemaBuilder {
         return builder.build();
     }
 
-    private void addMutationForEntity(Entity entity, Builder mutationTypeBuilder, String name) {
+    private void addMutationForEntity(Entity entity, Builder mutationTypeBuilder, String name, GraphQLCodeRegistry.Builder codeBuilder) {
         String argumentType;
         String fieldName;
         GraphQLFieldDefinition.Builder field = GraphQLFieldDefinition.newFieldDefinition();
@@ -146,27 +146,31 @@ public class GraphQLSchemaBuilder {
             case "create":
                 fieldName = "create" + StringUtil.capitalize(entity.getName().toLowerCase());
                 argumentType = "Mutate" + StringUtil.capitalize(entity.getName().toLowerCase()) + "Input";
+                field.argument(GraphQLArgument.newArgument().name("input").type(GraphQLNonNull.nonNull(new GraphQLTypeReference(argumentType))).build());
                 field.type(new GraphQLTypeReference(entity.getName()));
                 break;
             case "update":
                 fieldName = "update" + StringUtil.capitalize(entity.getName().toLowerCase());
                 argumentType = "Mutate" + StringUtil.capitalize(entity.getName().toLowerCase()) + "Input";
                 String conditionalUpdate = StringUtil.capitalize(entity.getName().toLowerCase()) + "FilterInput";
-                field.argument(GraphQLArgument.newArgument().name("where").type(new GraphQLTypeReference(conditionalUpdate)).build());
-                field.type(Scalars.GraphQLInt);
+                field.argument(GraphQLArgument.newArgument().name("filter").type(new GraphQLTypeReference(conditionalUpdate)).build());
+                field.argument(GraphQLArgument.newArgument().name("input").type(GraphQLNonNull.nonNull(new GraphQLTypeReference(argumentType))).build());
+                field.type(GraphQLList.list(new GraphQLTypeReference(entity.getName())));
+
                 break;
             case "delete":
                 fieldName = "delete" + StringUtil.capitalize(entity.getName().toLowerCase());
                 argumentType = StringUtil.capitalize(entity.getName().toLowerCase()) + "FilterInput";
-                field.type(Scalars.GraphQLInt);
+                field.argument(GraphQLArgument.newArgument().name("filter").type(GraphQLNonNull.nonNull(new GraphQLTypeReference(argumentType))).build());
+                field.type(GraphQLList.list(new GraphQLTypeReference(entity.getName())));
                 break;
             default:
                 throw new RuntimeException("Unexpected value: " + name);
         }
 
         field.name(fieldName);
-        field.argument(GraphQLArgument.newArgument().name("input").type(GraphQLNonNull.nonNull(new GraphQLTypeReference(argumentType))).build());
         mutationTypeBuilder.field(field.build());
+        codeBuilder.dataFetcher(FieldCoordinates.coordinates("MutationType", fieldName), DEFAULT_DATA_FETCHER_FACTORY);
     }
 
     private void addQueryOperationsForEntity(Entity entity, Builder queryTypeBuilder, GraphQLCodeRegistry.Builder codeBuilder) {
@@ -264,7 +268,7 @@ public class GraphQLSchemaBuilder {
         return filterFields;
     }
 
-    protected List<GraphQLInputObjectField.Builder> buildMutations(Entity mutationEntity) {
+    protected List<GraphQLInputObjectField.Builder> buildMutations(Entity mutationEntity, GraphQLCodeRegistry.Builder codeBuilder) {
         ArrayList<GraphQLInputObjectField.Builder> mutationFields = new ArrayList<>();
 
         mutationEntity.getAttributes().forEach(attribute -> {
@@ -280,6 +284,7 @@ public class GraphQLSchemaBuilder {
                 }
             }
             mutationFields.add(builder);
+            codeBuilder.dataFetcher(FieldCoordinates.coordinates(mutationEntity.getName(), attribute.getName()), DEFAULT_DATA_FETCHER_FACTORY);
         });
         return mutationFields;
     }

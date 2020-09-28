@@ -37,7 +37,7 @@ public class QueryScanner {
         this.visitor = visitor;
     }
 
-    public void scan(Field field, GraphQLFieldDefinition definition, String fqn, boolean root) {
+    public void scanQuery(Field field, GraphQLFieldDefinition definition, String fqn, boolean root) {
 
         GraphQLType type = definition.getType();
         if (type instanceof GraphQLModifiedType) {
@@ -63,7 +63,7 @@ public class QueryScanner {
                 String fieldName = fqn == null ? name : fqn+"/"+name;
                 SelectedField childField = this.environment.getSelectionSet().getField(fieldName);
                 GraphQLFieldDefinition childDefinition = childField.getFieldDefinition();
-                scan(f, childDefinition, fieldName, false);
+                scanQuery(f, childDefinition, fieldName, false);
             }
 
             // now walk the arguments, maybe specific ones later
@@ -73,6 +73,22 @@ public class QueryScanner {
                 this.visitor.endVisitRootObject(field, definition, (GraphQLObjectType)type);
             } else {
                 this.visitor.endVisitObject(field, definition, (GraphQLObjectType)type);
+            }
+        }
+    }
+
+    public void scanMutation(Field field, GraphQLFieldDefinition definition, String fqn, boolean root) {
+
+        GraphQLType type = definition.getType();
+        if (type instanceof GraphQLModifiedType) {
+            type = ((GraphQLModifiedType) type).getWrappedType();
+        }
+
+        if (type instanceof GraphQLObjectType) {
+            if (root) {
+                this.visitor.startVisitRootObject(field, definition, (GraphQLObjectType) type);
+                scanArguments(field, definition, type);
+                this.visitor.endVisitRootObject(field, definition, (GraphQLObjectType) type);
             }
         }
     }

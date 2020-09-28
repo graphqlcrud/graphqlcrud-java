@@ -72,7 +72,7 @@ public class SQLFilterBuilder implements FilterBuilder<Condition> {
     }
 
     Condition visitStringValue(String value, String fieldName, String conditionName) {
-        org.jooq.Field<Object> left = field(name(this.alias, fieldName));
+        org.jooq.Field<Object> left = this.alias != null ? field(name(this.alias, fieldName)) : field(fieldName);
         Condition c = null;
         switch (conditionName) {
             case "eq":
@@ -112,7 +112,7 @@ public class SQLFilterBuilder implements FilterBuilder<Condition> {
     }
 
     Condition visitBooleanValue(Boolean value, String fieldName, String conditionName) {
-        org.jooq.Field<Object> left = field(name(this.alias, fieldName));
+        org.jooq.Field<Object> left = this.alias != null ? field(name(this.alias, fieldName)) : field(fieldName);
         Condition c = null;
         switch (conditionName) {
             case "eq":
@@ -128,7 +128,7 @@ public class SQLFilterBuilder implements FilterBuilder<Condition> {
     }
 
     Condition visitIntValue(BigInteger value, String fieldName, String conditionName) {
-        org.jooq.Field<Object> left = field(name(this.alias, fieldName));
+        org.jooq.Field<Object> left = this.alias != null ? field(name(this.alias, fieldName)) : field(fieldName);
         Condition c = null;
         switch (conditionName) {
             case "eq":
@@ -156,7 +156,7 @@ public class SQLFilterBuilder implements FilterBuilder<Condition> {
     }
 
     Condition visitFloatValue(BigDecimal value, String fieldName, String conditionName) {
-        org.jooq.Field<Object> left = field(name(this.alias, fieldName));
+        org.jooq.Field<Object> left = this.alias != null ? field(name(this.alias, fieldName)) : field(fieldName);
         Condition c = null;
         switch (conditionName) {
             case "eq":
@@ -185,7 +185,7 @@ public class SQLFilterBuilder implements FilterBuilder<Condition> {
 
 
     Condition visitArrayValue(List<Value> v, String fieldName, String conditionName) {
-        org.jooq.Field<Object> left = field(name(this.alias, fieldName));
+        org.jooq.Field<Object> left = this.alias != null ? field(name(this.alias, fieldName)) : field(fieldName);
         Condition c = null;
         switch (conditionName) {
             case "between":
