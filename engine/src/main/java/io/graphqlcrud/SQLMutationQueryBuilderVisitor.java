@@ -46,7 +46,7 @@ public class SQLMutationQueryBuilderVisitor implements QueryVisitor {
         DeleteUsingStep<Record> deleteClause;
         org.jooq.Condition condition;
         Collection<org.jooq.Field<?>> selectedFields = new ArrayList<>();
-        Map<String, Object> selectedColumns = new LinkedHashMap<>();
+        Map<org.jooq.Field, Object> selectedColumns = new LinkedHashMap<>();
     }
 
     private Stack<SQLMutationQueryBuilderVisitor.VisitorContext> stack = new Stack<>();
@@ -75,7 +75,7 @@ public class SQLMutationQueryBuilderVisitor implements QueryVisitor {
 
         if(mutationName.contains("create")) {
             Collection<org.jooq.Field<?>> fields = new ArrayList<>();
-            visitorContext.selectedColumns.forEach((key, value) -> fields.add(field(name(key))));
+            visitorContext.selectedColumns.forEach((key, value) -> fields.add(key));
 
             //build create clause
             visitorContext.insertClause = this.create.insertInto(tableName, fields);
@@ -119,8 +119,10 @@ public class SQLMutationQueryBuilderVisitor implements QueryVisitor {
 
             if(!arg.getValue().getChildren().isEmpty()) {
                 arg.getValue().getChildren().forEach(c -> {
-                    if (c instanceof ObjectField)
-                        visitorContext.selectedColumns.put(((ObjectField) c).getName(), getColumnValues(((ObjectField) c).getValue()));
+                    if (c instanceof ObjectField) {
+                        org.jooq.Field name = field(((ObjectField) c).getName());
+                        visitorContext.selectedColumns.put(name, getColumnValues(((ObjectField) c).getValue()));
+                    }
                 });
             }
         } else if (argumentName.equals("filter")) {
