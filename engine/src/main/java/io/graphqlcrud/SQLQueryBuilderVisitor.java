@@ -350,7 +350,26 @@ public class SQLQueryBuilderVisitor implements QueryVisitor{
             } else {
                 vctx.condition = vctx.condition.and(condition);
             }
-        } else {
+        } else if (argName.equals("input")) {
+            SQLDirective parentDirective = SQLDirective.find(type.getDirectives());
+            Value<?> value;
+            String name;
+            Condition condition;
+
+            for(ObjectField f : ((ObjectValue) argValue).getObjectFields()) {
+                if(parentDirective.getPrimaryKey().contains(f.getName())) {
+                    name = f.getName();
+                    value = f.getValue();
+                    condition = filterBuilder.buildCondition(name, "eq", value);
+                    if (vctx.condition == null) {
+                        vctx.condition = condition;
+                    } else {
+                        vctx.condition = filterBuilder.and(vctx.condition, condition);
+                    }
+                }
+            }
+        }
+        else {
             Condition condition = filterBuilder.buildCondition(argName, "eq", argValue);
             if (vctx.condition == null) {
                 vctx.condition = condition;

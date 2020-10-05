@@ -153,6 +153,7 @@ class SQLDataFetcherTest {
                 "      select *\n" +
                 "      from PUBLIC.ADDRESS\n" +
                 "      where \"g0\".\"SSN\" = \"SSN\"\n" +
+                "      order by \"ST_ADDRESS\"\n" +
                 "    ) \"g1\"\n" +
                 "  ) \"addreses\",\n" +
                 "  (\n" +
@@ -421,6 +422,7 @@ class SQLDataFetcherTest {
                 "      select *\n" +
                 "      from PUBLIC.ADDRESS\n" +
                 "      where \"g0\".\"SSN\" = \"SSN\"\n" +
+                "      order by \"ST_ADDRESS\"\n" +
                 "    ) \"g1\"\n" +
                 "  ) \"addreses\"\n" +
                 "from PUBLIC.CUSTOMER \"g0\"\n" +
@@ -886,6 +888,7 @@ class SQLDataFetcherTest {
                 "          )\n" +
                 "        )\n" +
                 "      )\n" +
+                "      order by \"ST_ADDRESS\"\n" +
                 "    ) \"g1\"\n" +
                 "  ) \"addreses\",\n" +
                 "  (\n" +
@@ -1048,6 +1051,7 @@ class SQLDataFetcherTest {
                 "          or \"g1\".\"STATE\" = 'New York'\n" +
                 "        )\n" +
                 "      )\n" +
+                "      order by \"ST_ADDRESS\"\n" +
                 "    ) \"g1\"\n" +
                 "  ) \"addreses\",\n" +
                 "  (\n" +
@@ -1138,6 +1142,7 @@ class SQLDataFetcherTest {
                 "          )\n" +
                 "        )\n" +
                 "      )\n" +
+                "      order by \"ST_ADDRESS\"\n" +
                 "    ) \"g1\"\n" +
                 "  ) \"addreses\",\n" +
                 "  (\n" +

@@ -50,12 +50,10 @@ public class FilterScanner<C> {
                 if (!value.getChildren().isEmpty()) {
                     ObjectField child = value.getObjectFields().get(0);
                     C condition = this.visitor.buildCondition(field.getName(), child.getName(), child.getValue());
-                    if (prevCondition == null) {
-                        prevCondition = new WrappedCondition(condition, wrappedClause);
-                    } else {
+                    if (prevCondition != null) {
                         condition = applyClause(prevCondition.condition, Clause.and, condition);
-                        prevCondition = new WrappedCondition(condition, wrappedClause);
                     }
+                    prevCondition = new WrappedCondition(condition, wrappedClause);
                 }
             }
         }
