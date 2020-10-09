@@ -106,7 +106,7 @@ public class GraphQLSchemaBuilder {
             GraphQLObjectType.Builder typeBuilder = GraphQLObjectType.newObject();
             typeBuilder.description(entity.getDescription());
             typeBuilder.name(entity.getName());
-            typeBuilder.withDirective(SQLDirective.newDirective().tablename(entity.getFullName()).build());
+            typeBuilder.withDirective(SQLDirective.newDirective().tableName(entity.getFullName()).build());
 
             // Add fields in a Type
             buildTypeFields(entity, schema, codeBuilder).stream().forEach(fieldBuilder -> {
@@ -275,13 +275,9 @@ public class GraphQLSchemaBuilder {
             GraphQLInputObjectField.Builder builder = GraphQLInputObjectField.newInputObjectField();
             builder.name(attribute.getName());
             if (mutationEntity.isPartOfPrimaryKey(attribute.getName())) {
-                builder.type(GraphQLNonNull.nonNull(Scalars.GraphQLID));
+                builder.type(Scalars.GraphQLID);
             } else {
-                if (attribute.isNullable()) {
-                    builder.type(TYPE_MAP.getAsGraphQLTypeStringForInput(attribute.getType()));
-                } else {
-                    builder.type(GraphQLNonNull.nonNull(TYPE_MAP.getAsGraphQLTypeStringForInput(attribute.getType())));
-                }
+                builder.type(TYPE_MAP.getAsGraphQLTypeStringForInput(attribute.getType()));
             }
             mutationFields.add(builder);
             codeBuilder.dataFetcher(FieldCoordinates.coordinates(mutationEntity.getName(), attribute.getName()), DEFAULT_DATA_FETCHER_FACTORY);

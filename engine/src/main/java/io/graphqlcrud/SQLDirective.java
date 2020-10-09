@@ -111,7 +111,7 @@ public class SQLDirective {
         public Builder() {
         }
 
-        public Builder tablename(String name) {
+        public Builder tableName(String name) {
             this.tableName = name;
             return this;
         }
