@@ -106,7 +106,7 @@ public class GraphQLSchemaBuilder {
             GraphQLObjectType.Builder typeBuilder = GraphQLObjectType.newObject();
             typeBuilder.description(entity.getDescription());
             typeBuilder.name(entity.getName());
-            typeBuilder.withDirective(SQLDirective.newDirective().tableName(entity.getFullName()).primaryKey(entity.getPrimaryKeys()).build());
+            typeBuilder.withDirective(SQLDirective.newDirective().tableName(entity.getFullName()).build());
 
             // Add fields in a Type
             buildTypeFields(entity, schema, codeBuilder).stream().forEach(fieldBuilder -> {

@@ -29,7 +29,6 @@ public class SQLDirective {
     private String tableName;
     private List<String> primaryFields;
     private List<String> foreignFields;
-    private List<String> primaryKey;
 
     public static SQLDirective find(List<GraphQLDirective> directives) {
         if (directives == null) {
@@ -56,10 +55,6 @@ public class SQLDirective {
 
         if (d.getArgument("reference_keys") != null) {
             sql.foreignFields = (List<String>)d.getArgument("reference_keys").getValue();
-        }
-
-        if (d.getArgument("primary_key") != null) {
-            sql.primaryKey = (List<String>)d.getArgument("primary_key").getValue();
         }
 
         return sql;
@@ -108,26 +103,12 @@ public class SQLDirective {
         return new Builder();
     }
 
-    public List<String> getPrimaryKey() {
-        return primaryKey;
-    }
-
-    public void setPrimaryKey(List<String> primaryKey) {
-        this.primaryKey = primaryKey;
-    }
-
     public static class Builder {
         private String tableName;
-        private List<String> primaryKey;
         private List<String> primaryFields;
         private List<String> foreignFields;
 
         public Builder() {
-        }
-
-        public Builder primaryKey(List<String> primaryKey) {
-            this.primaryKey = primaryKey;
-            return this;
         }
 
         public Builder tableName(String name) {
@@ -149,7 +130,6 @@ public class SQLDirective {
             GraphQLDirective.Builder b = GraphQLDirective.newDirective().name("sql");
             if (this.tableName != null) {
                 b.argument(GraphQLArgument.newArgument().name("table").type(GraphQLList.list(Scalars.GraphQLString)).value(tableName));
-                b.argument(GraphQLArgument.newArgument().name("primary_key").type(Scalars.GraphQLString).value(primaryKey));
             }
             if (this.primaryFields != null) {
                 b.argument(GraphQLArgument.newArgument().name("keys").type(Scalars.GraphQLString)
