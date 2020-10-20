@@ -20,8 +20,5 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 11
-    # This is only needed because of usage of SNAPSHOT version of JOOQ. See https://github.com/graphqlcrud/graphqlcrud-java/issues/30 
-    - name: Build JOOQ
-      run: git clone https://github.com/jOOQ/jOOQ && cd jOOQ && mvn clean install -DskipTests -DskipITs
     - name: Build with Maven
       run: mvn clean install
