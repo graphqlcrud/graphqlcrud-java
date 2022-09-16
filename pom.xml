@@ -39,7 +39,7 @@
     <quarkus.platform.version>1.7.0.Final</quarkus.platform.version>
     <surefire-plugin.version>2.22.1</surefire-plugin.version>
     <failsafe-plugin.version>3.0.0-M3</failsafe-plugin.version>
-    <version.com.graphql-java>15.0</version.com.graphql-java>
+    <version.com.graphql-java>17.4</version.com.graphql-java>
     <version.org.jooq>3.14.0</version.org.jooq>
   </properties>
   
